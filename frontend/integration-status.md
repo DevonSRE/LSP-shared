@@ -67,10 +67,26 @@ This tracks, per documented endpoint, whether the JudicAI frontend (`platform` a
 
 | Endpoint (spec) | Status | Note |
 | --- | --- | --- |
-| All `/platform/broadcasts*` | ❌ | Not yet integrated. Net-new module — build planned (see `shared/frontend/broadcast-api-requests.md` for open backend asks blocking parts of this). |
+| `POST /platform/broadcasts` | ✅ | `BroadcastService.createBroadcast` |
+| `GET /platform/broadcasts` | ✅ | `BroadcastService.listBroadcasts` |
+| `GET /platform/broadcasts/{id}` | ✅ | `BroadcastService.getBroadcast` |
+| `PATCH /platform/broadcasts/{id}` | ✅ | `BroadcastService.updateBroadcast` |
+| `DELETE /platform/broadcasts/{id}` | ✅ | `BroadcastService.deleteBroadcast` |
+| `POST /platform/broadcasts/{id}/send` | ✅ | `BroadcastService.sendBroadcast` |
+| `POST /platform/broadcasts/{id}/schedule` | ✅ | `BroadcastService.scheduleBroadcast` |
+| `POST /platform/broadcasts/{id}/cancel` | ✅ | `BroadcastService.cancelBroadcast` |
+| `POST /platform/broadcasts/{id}/duplicate` | ✅ | `BroadcastService.duplicateBroadcast` |
+| `GET /platform/broadcasts/{id}/analytics` | ✅ | `BroadcastService.getBroadcastAnalytics` — surfaced on the broadcast detail page once status is `SENT`/`FAILED`. |
+| `GET /platform/broadcasts/performance-summary` (proposed) | ❌ | Does not exist in spec yet — blocked on **REQ-04** (see `shared/frontend/broadcast-api-requests.md`). The Dashboard's "Summary Counters" (Total/Draft/Scheduled/Sent/Failed broadcast counts) are derived client-side from the list endpoint above; the "Performance Metrics" panel (Total Sent/Delivered/Opened/Clicked/Failed email-level aggregates, PRD §6.1) is not built pending this endpoint. |
+
+Audience targeting is currently limited to "Send to Everyone" and "Custom Selection" (manual search via `/platform/users`) — Role/Court/Subscription-Plan filters and attachments are blocked on REQ-01/REQ-02/REQ-03.
 
 ## Broadcast Templates
 
 | Endpoint (spec) | Status | Note |
 | --- | --- | --- |
-| All `/platform/broadcast-templates*` | ❌ | Not yet integrated. Planned alongside Broadcasts. |
+| `POST /platform/broadcast-templates` | ✅ | `BroadcastService.createTemplate` |
+| `GET /platform/broadcast-templates` | ✅ | `BroadcastService.listTemplates` |
+| `GET /platform/broadcast-templates/{id}` | ✅ | `BroadcastService.getTemplate` |
+| `PATCH /platform/broadcast-templates/{id}` | ✅ | `BroadcastService.updateTemplate` |
+| `DELETE /platform/broadcast-templates/{id}` | ✅ | `BroadcastService.deleteTemplate` |

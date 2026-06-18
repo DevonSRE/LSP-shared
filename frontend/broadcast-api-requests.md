@@ -132,3 +132,74 @@ attachments:
 **Problem:** No `subscription_plan` field exists on `CourtResponse`, `UserResponse`, or anywhere else in the current spec. Filtering broadcast audiences by plan (REQ-01) cannot be implemented until courts and/or users carry this data somewhere in the API.
 
 **Frontend plan until this lands:** "By Subscription Plan" filter UI is deferred.
+
+---
+
+## REQ-04 — Platform-wide broadcast performance-summary endpoint
+
+**PRD reference:** §6.1 Broadcast Dashboard, "Performance Metrics" (Total Sent, Delivered, Opened, Clicked, Failed)
+
+**Problem:** The PRD's Broadcast Dashboard requires a "Performance Metrics" panel aggregating **Total Sent**, **Delivered**, **Opened**, **Clicked**, and **Failed** counts across *all* broadcasts. The only documented analytics endpoint, `GET /platform/broadcasts/{id}/analytics`, returns `BroadcastAnalytics` for a single broadcast only (and only once that broadcast is `SENT`/`FAILED`) — there is no endpoint that aggregates these fields platform-wide. The dashboard's "Summary Counters" (Total/Draft/Scheduled/Sent/Failed *broadcast* counts, also in §6.1) are a separate, simpler metric that the frontend can already derive by counting statuses from the existing `GET /platform/broadcasts` list response, so no new endpoint is needed for those.
+
+**Requested endpoint:**
+
+```yaml
+/platform/broadcasts/performance-summary:
+  get:
+    tags: [Broadcasts]
+    summary: Aggregate broadcast delivery & engagement metrics
+    description: >
+      Returns Total Sent, Delivered, Opened, Clicked, and Failed counts
+      aggregated across all broadcasts (or within an optional date range),
+      for the Broadcast Dashboard's Performance Metrics panel.
+    parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+    responses:
+      "200":
+        description: Aggregate performance metrics
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/GenericResponse"
+                - type: object
+                  properties:
+                    data:
+                      $ref: "#/components/schemas/BroadcastPerformanceSummary"
+```
+
+**Requested schema:**
+
+```yaml
+BroadcastPerformanceSummary:
+  type: object
+  properties:
+    total_sent:
+      type: integer
+      format: int64
+    delivered:
+      type: integer
+      format: int64
+    opened:
+      type: integer
+      format: int64
+    clicked:
+      type: integer
+      format: int64
+    failed:
+      type: integer
+      format: int64
+```
+
+**Frontend plan until this lands:** the Broadcast Dashboard ships with the "Summary Counters" only (Total/Draft/Scheduled/Sent/Failed broadcast counts, computed client-side from the broadcast list). The "Performance Metrics" panel (Total Sent/Delivered/Opened/Clicked/Failed email-level aggregates) is not built until this endpoint exists — there's no way to derive it from currently documented endpoints without fetching `{id}/analytics` for every single broadcast.
