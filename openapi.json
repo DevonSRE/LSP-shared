@@ -1,0 +1,3367 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "JudicAI \u2013 Platform Admin API",
+    "version": "1.0.0",
+    "description": "All endpoints accessible to the Platform Administrator role. Covers court management, user management, analytics, model retraining access, and the email broadcast system.\n"
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "Production base path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Sponsors",
+      "description": "Court sponsor (donor) management and court linkage"
+    },
+    {
+      "name": "Authentication",
+      "description": "Login, password reset, and password change"
+    },
+    {
+      "name": "Analytics",
+      "description": "Platform-wide aggregate statistics"
+    },
+    {
+      "name": "Courts",
+      "description": "Create and manage court records"
+    },
+    {
+      "name": "Court Configuration",
+      "description": "Per-court branding and tenant config"
+    },
+    {
+      "name": "Users",
+      "description": "Create and manage platform users"
+    },
+    {
+      "name": "Retraining",
+      "description": "Read-only access to courts/cases/casefiles for model retraining (PlatformModelRetrainer role)"
+    },
+    {
+      "name": "Broadcasts",
+      "description": "Email broadcast campaigns"
+    },
+    {
+      "name": "Broadcast Templates",
+      "description": "Reusable email templates"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "RSA-signed JWT. Platform Admin endpoints require user_type = PLATFORM_ADMIN. Retraining endpoints additionally accept user_type = PLATFORM_MODEL_RETRAINER.\n"
+      }
+    },
+    "schemas": {
+      "CreateCourtSponsorRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "email"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "UNODC"
+          },
+          "link": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://unodc.org"
+          },
+          "description": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "contact@unodc.org"
+          }
+        }
+      },
+      "CourtSponsorResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "link": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LinkCourtsToSponsorRequest": {
+        "type": "object",
+        "required": [
+          "court_ids"
+        ],
+        "properties": {
+          "court_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@judicai.ng"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "P@ssw0rd!"
+          }
+        }
+      },
+      "EmailForPasswordReset": {
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@judicai.ng"
+          }
+        }
+      },
+      "UserChangePasswordRequest": {
+        "type": "object",
+        "required": [
+          "new_password"
+        ],
+        "properties": {
+          "old_password": {
+            "type": "string",
+            "format": "password"
+          },
+          "new_password": {
+            "type": "string",
+            "format": "password"
+          }
+        }
+      },
+      "UserLoginResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "user_type": {
+            "$ref": "#/components/schemas/UserType"
+          },
+          "court_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "profile_image": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "require_new_password": {
+            "type": "boolean"
+          },
+          "has_confirmed_policy": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "RS256-signed JWT. Include as `Authorization: Bearer <token>` on subsequent requests."
+          },
+          "user_details": {
+            "$ref": "#/components/schemas/UserLoginResponse"
+          },
+          "court_details": {
+            "type": "object",
+            "nullable": true,
+            "description": "Court record associated with the user, if any (null for PLATFORM_ADMIN)."
+          }
+        }
+      },
+      "GenericResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "PaginatedResult": {
+        "type": "object",
+        "properties": {
+          "entity": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "total_rows": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_pages": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "array",
+            "items": {}
+          }
+        }
+      },
+      "UserSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "user_type": {
+            "$ref": "#/components/schemas/UserType"
+          },
+          "court_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UserType": {
+        "type": "string",
+        "enum": [
+          "PLATFORM_ADMIN",
+          "PLATFORM_MODEL_RETRAINER",
+          "JUDGE",
+          "LEGAL_AIDE",
+          "REGISTRAR"
+        ]
+      },
+      "Gender": {
+        "type": "string",
+        "enum": [
+          "MALE",
+          "FEMALE"
+        ]
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "ACTIVE",
+          "INACTIVE"
+        ]
+      },
+      "CourtType": {
+        "type": "string",
+        "enum": [
+          "HIGH_COURT",
+          "MAGISTRATE_COURT",
+          "CUSTOMARY_COURT",
+          "SHARIA_COURT",
+          "APPEAL_COURT",
+          "SUPREME_COURT"
+        ]
+      },
+      "AIModel": {
+        "type": "string",
+        "enum": [
+          "ASSEMBLYAI",
+          "JUDICAI"
+        ]
+      },
+      "BroadcastStatus": {
+        "type": "string",
+        "enum": [
+          "DRAFT",
+          "SCHEDULED",
+          "SENDING",
+          "SENT",
+          "FAILED",
+          "CANCELLED"
+        ]
+      },
+      "BroadcastRecipientType": {
+        "type": "string",
+        "enum": [
+          "USER",
+          "LITIGANT"
+        ]
+      },
+      "AIUsageEntry": {
+        "type": "object",
+        "properties": {
+          "court_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "court_name": {
+            "type": "string"
+          },
+          "ai_model": {
+            "$ref": "#/components/schemas/AIModel"
+          },
+          "active_days": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of distinct calendar days on which at least one casefile was transcribed"
+          },
+          "total_files_transcribed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "first_activity": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_activity": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "PlatformAnalytics": {
+        "type": "object",
+        "properties": {
+          "total_court": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_cases": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_recordings": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_transcript": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_virtual": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CourtSummary": {
+        "type": "object",
+        "properties": {
+          "court_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "court_name": {
+            "type": "string"
+          },
+          "court_location": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "judge_name": {
+            "type": "string"
+          },
+          "users_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cases_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "case_files_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_casefile_date": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "SingleCourtSummary": {
+        "type": "object",
+        "properties": {
+          "users_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cases_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "case_files_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_casefile_date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CourtRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "court_type",
+          "court_code",
+          "state",
+          "location"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Kano State High Court"
+          },
+          "court_type": {
+            "$ref": "#/components/schemas/CourtType"
+          },
+          "court_code": {
+            "type": "string",
+            "example": "KN-HC-001"
+          },
+          "state": {
+            "type": "string",
+            "example": "Kano"
+          },
+          "location": {
+            "type": "string",
+            "example": "Kano Municipality"
+          },
+          "court_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "ai_model": {
+            "$ref": "#/components/schemas/AIModel"
+          },
+          "judge_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "court_config_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CourtResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "court_type": {
+            "$ref": "#/components/schemas/CourtType"
+          },
+          "court_code": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "court_email": {
+            "type": "string"
+          },
+          "ai_model": {
+            "$ref": "#/components/schemas/AIModel"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CourtOnboardRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "court_type",
+          "court_code",
+          "state",
+          "location",
+          "judge"
+        ],
+        "description": "Creates a court and its first judge user in one transaction.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "court_type": {
+            "$ref": "#/components/schemas/CourtType"
+          },
+          "court_code": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "court_email": {
+            "type": "string",
+            "format": "email"
+          },
+          "ai_model": {
+            "$ref": "#/components/schemas/AIModel"
+          },
+          "judge": {
+            "$ref": "#/components/schemas/UserRequest"
+          }
+        }
+      },
+      "CourtConfigRequest": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "example": "kano.judicai.ng"
+          },
+          "description": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string",
+            "format": "uri"
+          },
+          "background_image": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sponsors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "link": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CourtConfigResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "logo": {
+            "type": "string"
+          },
+          "background_image": {
+            "type": "string"
+          },
+          "sponsors": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserRequest": {
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "email",
+          "gender",
+          "user_type"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "middle_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "format": "date"
+          },
+          "password": {
+            "type": "string"
+          },
+          "user_type": {
+            "$ref": "#/components/schemas/UserType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "court_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "middle_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          },
+          "gender": {
+            "$ref": "#/components/schemas/Gender"
+          },
+          "user_type": {
+            "$ref": "#/components/schemas/UserType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
+          "court_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "profile_image": {
+            "type": "string"
+          },
+          "require_new_password": {
+            "type": "boolean"
+          },
+          "has_confirmed_policy": {
+            "type": "boolean"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RecipientRequest": {
+        "type": "object",
+        "required": [
+          "recipient_id",
+          "recipient_type"
+        ],
+        "properties": {
+          "recipient_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "recipient_type": {
+            "$ref": "#/components/schemas/BroadcastRecipientType"
+          }
+        }
+      },
+      "BroadcastRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "subject",
+          "sender_name",
+          "reply_to_email",
+          "content",
+          "recipients"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "June Platform Update"
+          },
+          "subject": {
+            "type": "string",
+            "example": "Important update from JudicAI"
+          },
+          "sender_name": {
+            "type": "string",
+            "example": "JudicAI Team"
+          },
+          "reply_to_email": {
+            "type": "string",
+            "format": "email",
+            "example": "noreply@judicai.ng"
+          },
+          "content": {
+            "type": "string",
+            "description": "HTML email body"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BroadcastStatus",
+            "description": "Optional. Omit or pass DRAFT to save without sending. Pass SENT to dispatch immediately. Pass SCHEDULED \u2014 requires scheduled_at.\n"
+          },
+          "template_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecipientRequest"
+            }
+          }
+        }
+      },
+      "BroadcastScheduleRequest": {
+        "type": "object",
+        "required": [
+          "scheduled_at"
+        ],
+        "properties": {
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-07-01T09:00:00Z"
+          }
+        }
+      },
+      "BroadcastResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "sender_name": {
+            "type": "string"
+          },
+          "reply_to_email": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BroadcastStatus"
+          },
+          "template_id": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "scheduled_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "sent_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recipient_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BroadcastAnalytics": {
+        "type": "object",
+        "properties": {
+          "broadcast_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_recipients": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "delivered": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unique_opens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unique_clicks": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "BroadcastTemplateRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "subject",
+          "content"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Feature Release"
+          },
+          "subject": {
+            "type": "string",
+            "example": "New Feature Available on JudicAI"
+          },
+          "content": {
+            "type": "string",
+            "description": "HTML email body"
+          }
+        }
+      },
+      "BroadcastTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "is_system": {
+            "type": "boolean",
+            "description": "System templates cannot be edited or deleted"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/platform/sponsors": {
+      "post": {
+        "tags": [
+          "Sponsors"
+        ],
+        "summary": "Create a sponsor",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCourtSponsorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sponsor created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CourtSponsorResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or duplicate name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Sponsors"
+        ],
+        "summary": "List all sponsors",
+        "responses": {
+          "200": {
+            "description": "Sponsor list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CourtSponsorResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/sponsors/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Sponsors"
+        ],
+        "summary": "Retrieve a sponsor",
+        "responses": {
+          "200": {
+            "description": "Sponsor detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CourtSponsorResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/sponsors/{id}/link": {
+      "post": {
+        "tags": [
+          "Sponsors"
+        ],
+        "summary": "Link courts to a sponsor",
+        "description": "Sets the sponsor_id on all supplied courts to this sponsor. All court IDs are validated before any update is applied \u2014 if any ID is invalid the entire request is rejected.\n",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkCourtsToSponsorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Courts linked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid sponsor ID, invalid court ID(s), or empty list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/sponsors/{id}/courts": {
+      "get": {
+        "tags": [
+          "Sponsors"
+        ],
+        "summary": "List courts linked to a sponsor",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated court list for this sponsor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResult"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CourtResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid sponsor ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Login",
+        "description": "Authenticates a user with email and password. Returns an RS256-signed JWT valid for subsequent requests. Include the token as `Authorization: Bearer <token>`.\n",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/LoginResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid credentials or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/request_reset_link": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Request password reset link",
+        "description": "Sends a password reset link to the supplied email address. Returns 200 regardless of whether the email exists (to prevent enumeration).\n",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailForPasswordReset"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset link sent (if email is registered)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (invalid email format)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}/change_password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Change password",
+        "description": "Changes the password for the specified user. Requires a valid JWT. Accessible to JUDGE, LEGAL_AIDE, PLATFORM_ADMIN, and REGISTRAR roles. Supply `old_password` when the user knows their current password. Omit `old_password` when `require_new_password` is true (first-login forced reset).\n",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "ID of the user whose password is being changed"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserChangePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Incorrect old password or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid JWT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/analytics": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Platform-wide aggregate stats",
+        "description": "Returns total counts of courts, cases, recordings, transcripts, and virtual meetings across the entire platform.",
+        "responses": {
+          "200": {
+            "description": "Aggregate analytics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformAnalytics"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/analytics/group": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Per-court analytics list",
+        "description": "Paginated list of each court's summary metrics \u2014 user count, case count, casefile count, and last activity date.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter by court name"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated court summary list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResult"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CourtSummary"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/analytics/{courtID}/metric": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Single court metric",
+        "description": "Returns aggregated counts for a specific court \u2014 users, cases, casefiles, last activity.",
+        "parameters": [
+          {
+            "name": "courtID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Court metric detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SingleCourtSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid court ID or court not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/analytics/ai-usage": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "AI transcription usage per court",
+        "description": "Returns a paginated list of courts and their AI transcription activity within the given date window. A court appears in results only if at least one casefile was transcribed (by ASSEMBLYAI or JUDICAI) during the period. Use `min_days` to filter to courts that were active for at least N distinct calendar days. Use `ai_model` to narrow to one model only.\n",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2026-01-01"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "example": "2026-06-30"
+          },
+          {
+            "name": "ai_model",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AIModel"
+            },
+            "description": "Filter to a specific AI model. Omit to include both."
+          },
+          {
+            "name": "min_days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Only return courts active for at least this many distinct days"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated AI usage list ordered by active_days descending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResult"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AIUsageEntry"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing start_date / end_date or invalid min_days",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courts": {
+      "get": {
+        "tags": [
+          "Courts"
+        ],
+        "summary": "List courts",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by court name"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated court list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResult"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CourtResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Courts"
+        ],
+        "summary": "Create a court",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourtRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Court created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CourtResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courts/constants": {
+      "get": {
+        "tags": [
+          "Courts"
+        ],
+        "summary": "Court type constants",
+        "description": "Returns lists of valid court_type and ai_model enum values.",
+        "responses": {
+          "200": {
+            "description": "Enum constants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courts/onboard": {
+      "post": {
+        "tags": [
+          "Courts"
+        ],
+        "summary": "Onboard a court with its first judge",
+        "description": "Creates a court record and the judge user account in a single transaction.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourtOnboardRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Court and judge created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courts/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Courts"
+        ],
+        "summary": "Retrieve a court",
+        "responses": {
+          "200": {
+            "description": "Court detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CourtResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Courts"
+        ],
+        "summary": "Update a court",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourtRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Courts"
+        ],
+        "summary": "Delete a court",
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courts/configurations": {
+      "get": {
+        "tags": [
+          "Court Configuration"
+        ],
+        "summary": "List court configurations",
+        "responses": {
+          "200": {
+            "description": "Paginated configuration list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResult"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CourtConfigResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Court Configuration"
+        ],
+        "summary": "Create a court configuration",
+        "description": "Stores branding (logo, background, sponsors, domain) for a specific court's tenant portal.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourtConfigRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Configuration created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CourtConfigResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/courts/configurations/{id}": {
+      "get": {
+        "tags": [
+          "Court Configuration"
+        ],
+        "summary": "Retrieve a court configuration",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CourtConfigResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List platform users",
+        "description": "Returns all users across all courts. Supports search and filtering by user type.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search by name or email"
+          },
+          {
+            "name": "user_type",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/UserType"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated user list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResult"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/UserResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create a platform user",
+        "description": "Creates a court user (Judge, Registrar, Legal Aide, or Platform Admin).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or duplicate email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/retrain/courts": {
+      "get": {
+        "tags": [
+          "Retraining"
+        ],
+        "summary": "List all courts",
+        "description": "Read-only view of courts for model retraining. Requires PLATFORM_MODEL_RETRAINER role.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated court list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/retrain/court/{courtID}": {
+      "get": {
+        "tags": [
+          "Retraining"
+        ],
+        "summary": "Retrieve a court",
+        "parameters": [
+          {
+            "name": "courtID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Court detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CourtResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/retrain/court/{courtID}/cases": {
+      "get": {
+        "tags": [
+          "Retraining"
+        ],
+        "summary": "List cases in a court",
+        "parameters": [
+          {
+            "name": "courtID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated case list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/retrain/court/{courtID}/case/{caseID}": {
+      "get": {
+        "tags": [
+          "Retraining"
+        ],
+        "summary": "Retrieve a case",
+        "parameters": [
+          {
+            "name": "courtID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "caseID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Case detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/retrain/court/{courtID}/case/{caseID}/casefiles": {
+      "get": {
+        "tags": [
+          "Retraining"
+        ],
+        "summary": "List casefiles in a case",
+        "parameters": [
+          {
+            "name": "courtID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "caseID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated casefile list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/retrain/court/{courtID}/case/{caseID}/casefile/{casefileID}": {
+      "get": {
+        "tags": [
+          "Retraining"
+        ],
+        "summary": "Retrieve a casefile",
+        "parameters": [
+          {
+            "name": "courtID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "caseID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "casefileID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Casefile detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcasts": {
+      "post": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Create a broadcast",
+        "description": "Creates a new broadcast with recipient resolution from the platform's user and litigant records. Pass status=SENT to dispatch immediately, status=SCHEDULED (with scheduled_at) to queue, or omit / pass DRAFT to save without sending.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Broadcast created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BroadcastResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or no resolvable recipients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "List broadcasts",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Searches title and subject (case-insensitive)"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/BroadcastStatus"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated broadcast list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResult"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/BroadcastResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcasts/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Retrieve a broadcast",
+        "responses": {
+          "200": {
+            "description": "Broadcast detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BroadcastResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Update a broadcast",
+        "description": "Only DRAFT and SCHEDULED broadcasts can be updated.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated broadcast",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BroadcastResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or non-editable status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Delete a broadcast",
+        "description": "Only DRAFT broadcasts can be deleted.",
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Broadcast is not a draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcasts/{id}/send": {
+      "post": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Send a broadcast immediately",
+        "description": "Dispatches the broadcast to all resolved recipients via Mailjet. Sets status to SENDING then SENT (or FAILED if all deliveries fail).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Broadcast dispatched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already sent, cancelled, or has no recipients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcasts/{id}/schedule": {
+      "post": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Schedule a broadcast",
+        "description": "Sets status to SCHEDULED and stores the dispatch time. scheduled_at must be in the future.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastScheduleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Broadcast scheduled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Past date, already sent, or already cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcasts/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Cancel a scheduled broadcast",
+        "description": "Only SCHEDULED broadcasts can be cancelled.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Broadcast cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Broadcast is not in SCHEDULED status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcasts/{id}/duplicate": {
+      "post": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Duplicate a broadcast",
+        "description": "Creates a new DRAFT broadcast copied from the source. Title gets \" (Copy)\" suffix. Recipients are not copied.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Duplicated broadcast",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BroadcastResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Source broadcast not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcasts/{id}/analytics": {
+      "get": {
+        "tags": [
+          "Broadcasts"
+        ],
+        "summary": "Get broadcast delivery analytics",
+        "description": "Proxies per-message delivery and engagement statistics from Mailjet. Only available once the broadcast status is SENT or FAILED.\n",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analytics data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BroadcastAnalytics"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Broadcast not yet sent or not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcast-templates": {
+      "post": {
+        "tags": [
+          "Broadcast Templates"
+        ],
+        "summary": "Create a template",
+        "description": "Creates a user-defined template. Six system templates are seeded automatically at startup and cannot be modified.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastTemplateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BroadcastTemplateResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Duplicate name or validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Broadcast Templates"
+        ],
+        "summary": "List templates",
+        "description": "Returns system templates first, then user-created templates ordered by newest. Search filters by template name.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated template list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedResult"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/BroadcastTemplateResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/platform/broadcast-templates/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "tags": [
+          "Broadcast Templates"
+        ],
+        "summary": "Retrieve a template",
+        "responses": {
+          "200": {
+            "description": "Template detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BroadcastTemplateResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Broadcast Templates"
+        ],
+        "summary": "Update a template",
+        "description": "System templates (is_system=true) cannot be edited.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastTemplateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GenericResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BroadcastTemplateResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "System template or duplicate name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Broadcast Templates"
+        ],
+        "summary": "Delete a template",
+        "description": "System templates (is_system=true) cannot be deleted.",
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "System template cannot be deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenericResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
