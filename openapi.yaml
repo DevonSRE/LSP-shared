@@ -22,6 +22,12 @@ tags:
     description: Create and manage court records
   - name: Court Configuration
     description: Per-court branding and tenant config
+  - name: Court Payment Configuration
+    description: >
+      Per-court pricing (price per page, CTC price) and payout bank account.
+      Accessible to Judge, Legal Aide, Registrar, and Platform Admin users.
+      The payout account can only be set once per court — see endpoint
+      description below.
   - name: Users
     description: Create and manage platform users
   - name: Retraining
@@ -477,6 +483,71 @@ components:
           items:
             type: object
         created_at:
+          type: string
+          format: date-time
+
+    # ── Court Payment Configuration ──────────────────────────────────────────
+
+    CourtPaymentConfigRequest:
+      type: object
+      required: [price_per_page, ctc_price]
+      properties:
+        price_per_page:
+          type: integer
+          format: int64
+          description: Price per page of a court proceeding (casefile) copy, in kobo.
+          example: 5000
+        ctc_price:
+          type: integer
+          format: int64
+          description: Price for a Certified True Copy (CTC), in kobo.
+          example: 200000
+        account_number:
+          type: string
+          description: >
+            Payout bank account number. Optional — omit to leave unset, or to
+            update prices without touching the account. Can only be provided
+            once per court: if the court's account_number is already set,
+            submitting a different value here is rejected with a 400 error.
+            Once locked there is no self-service way to change it — the court
+            must contact support (not yet built).
+          example: "0123456789"
+        bank_name:
+          type: string
+          description: Required if account_number is provided.
+          example: "First Bank"
+
+    CourtPaymentConfigResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        court_id:
+          type: integer
+          format: int64
+        price_per_page:
+          type: integer
+          format: int64
+          description: In kobo.
+        ctc_price:
+          type: integer
+          format: int64
+          description: In kobo.
+        account_number:
+          type: string
+        bank_name:
+          type: string
+        account_locked:
+          type: boolean
+          description: >
+            True once account_number has been set. The frontend should
+            disable the account/bank fields client-side when this is true,
+            rather than relying solely on the API's rejection.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
           type: string
           format: date-time
 
@@ -1393,6 +1464,59 @@ paths:
                         $ref: "#/components/schemas/CourtConfigResponse"
         "400":
           description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  # ── Court Payment Configuration ─────────────────────────────────────────────
+
+  /court/payment_config:
+    get:
+      tags: [Court Payment Configuration]
+      summary: Get the caller's court payment configuration
+      description: >
+        Accessible to Judge, Legal Aide, Registrar, and Platform Admin users.
+        Scoped to the authenticated user's own court. Returns a 200 with
+        account_locked: false and empty pricing/account fields if the court
+        hasn't configured payment settings yet — this is a normal first-time
+        state, not an error.
+      responses:
+        "200":
+          description: Current payment configuration (or an unconfigured default)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtPaymentConfigResponse"
+
+    put:
+      tags: [Court Payment Configuration]
+      summary: Set or update the caller's court payment configuration
+      description: >
+        Accessible to Judge, Legal Aide, Registrar, and Platform Admin users.
+        Scoped to the authenticated user's own court. Price fields are
+        always updatable. account_number can only be submitted once per
+        court — if it's already set, submitting a different value returns
+        a 400 with an explanatory message and leaves the stored account
+        untouched. There is currently no in-app way to change a locked
+        account (support contact flow not yet built).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourtPaymentConfigRequest"
+      responses:
+        "200":
+          description: Payment configuration created or updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtPaymentConfigResponse"
+        "400":
+          description: >
+            Validation error, or a rejected attempt to change an
+            already-locked payout account
           content:
             application/json:
               schema:
