@@ -576,9 +576,9 @@ components:
       type: string
       enum: [DRAFT, PUBLISHED, ARCHIVED]
       description: >
-        Only PUBLISHED is reachable today — plan lifecycle management
-        (Draft/Archive/Duplicate) is not yet built; CreatePlan always
-        creates a PUBLISHED plan.
+        A plan is created DRAFT, becomes PUBLISHED (selectable by courts)
+        via the publish endpoint, and can be moved to ARCHIVED — which
+        stops new selection without force-migrating existing subscribers.
 
     SubscriptionRenewal:
       type: string
@@ -596,6 +596,10 @@ components:
     CourtSubscriptionPlanRequest:
       type: object
       required: [name, price, billing_cycle]
+      description: >
+        Used by both create (POST) and edit (PATCH) — same shape for both.
+        waiver_cap_days and reverts_to_plan_id are required together when
+        is_waiver is true.
       properties:
         name:
           type: string
@@ -607,6 +611,19 @@ components:
           example: 15000000
         billing_cycle:
           $ref: "#/components/schemas/BillingCycle"
+        is_waiver:
+          type: boolean
+          default: false
+        waiver_cap_days:
+          type: integer
+          nullable: true
+          description: Required if is_waiver is true — days after a subscriber goes onto this plan before they auto-revert.
+          example: 90
+        reverts_to_plan_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Required if is_waiver is true — the plan a subscriber reverts to when the cap expires.
 
     CourtSubscriptionPlanResponse:
       type: object
@@ -624,6 +641,21 @@ components:
           $ref: "#/components/schemas/BillingCycle"
         status:
           $ref: "#/components/schemas/PlanStatus"
+        is_waiver:
+          type: boolean
+        waiver_cap_days:
+          type: integer
+          nullable: true
+        reverts_to_plan_id:
+          type: integer
+          format: int64
+          nullable: true
+        pending_approval:
+          type: boolean
+          description: >
+            True while this plan is priced above the publish-approval
+            threshold (₦200,000) and awaiting a second, different
+            Platform Admin to confirm publishing.
         created_at:
           type: string
           format: date-time
@@ -1756,8 +1788,12 @@ paths:
   /court/subscription-plans:
     get:
       tags: [Court Subscription Billing]
-      summary: List subscription plans
-      description: Accessible to Judge, Legal Aide, Registrar, and Platform Admin users.
+      summary: List published subscription plans
+      description: >
+        Accessible to Judge, Legal Aide, Registrar, and Platform Admin
+        users. Only PUBLISHED plans — what a court can actually select.
+        For DRAFT/ARCHIVED visibility, see
+        /court/subscription-plans/admin.
       responses:
         "200":
           description: Plan list
@@ -1771,10 +1807,10 @@ paths:
       tags: [Court Subscription Billing]
       summary: Create a subscription plan
       description: >
-        Platform Admin only. Editing an existing plan's price (not yet a
-        documented endpoint — no update/archive/duplicate API exists yet,
-        see Plans lifecycle, not built) never retroactively changes an
-        already-locked-in subscription's fee — only future
+        Platform Admin only. Always creates a DRAFT — not selectable by
+        any court until published. Editing an existing plan's price
+        (PATCH /court/subscription-plans/{id}) never retroactively
+        changes an already-locked-in subscription's fee — only future
         subscribe/renew actions use a new price.
       requestBody:
         required: true
@@ -1784,13 +1820,149 @@ paths:
               $ref: "#/components/schemas/CourtSubscriptionPlanRequest"
       responses:
         "201":
-          description: Plan created
+          description: Plan created (DRAFT)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
         "400":
           description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/subscription-plans/admin:
+    get:
+      tags: [Court Subscription Billing]
+      summary: List all subscription plans (any status)
+      description: Platform Admin only. For plan management screens — includes DRAFT and ARCHIVED plans alongside PUBLISHED.
+      responses:
+        "200":
+          description: Plan list, all statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+
+  /court/subscription-plans/{id}:
+    patch:
+      tags: [Court Subscription Billing]
+      summary: Edit a plan's name/price/cycle/waiver fields
+      description: >
+        Platform Admin only. Does not change status — a DRAFT stays
+        DRAFT, a PUBLISHED plan stays PUBLISHED. Use the publish/archive
+        endpoints for status transitions.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourtSubscriptionPlanRequest"
+      responses:
+        "200":
+          description: Plan updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+        "400":
+          description: Plan not found, or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/subscription-plans/{id}/publish:
+    post:
+      tags: [Court Subscription Billing]
+      summary: Publish a plan (make it selectable)
+      description: >
+        Platform Admin only. Idempotent for an already-published plan.
+        Plans priced above ₦200,000 need a second call from a
+        *different* Platform Admin — the first call records the request
+        and returns pending_approval: true, still DRAFT; the same admin
+        calling again is rejected.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Plan published, or awaiting a second approver (check pending_approval)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+        "400":
+          description: Plan not found, or the same admin tried to confirm their own request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/subscription-plans/{id}/archive:
+    post:
+      tags: [Court Subscription Billing]
+      summary: Archive a plan
+      description: >
+        Platform Admin only. Stops new selection (by any court, including
+        one switching plans) — does not force-migrate existing
+        subscribers, who may still renew the same archived plan.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Plan archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+        "400":
+          description: Plan not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/subscription-plans/{id}/duplicate:
+    post:
+      tags: [Court Subscription Billing]
+      summary: Duplicate a plan as a new draft
+      description: Platform Admin only. Copies name (with a " (Copy)" suffix), price, cycle, and waiver fields into a new DRAFT plan.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "201":
+          description: New draft plan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+        "400":
+          description: Source plan not found
           content:
             application/json:
               schema:
@@ -1837,7 +2009,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CourtSubscriptionCheckoutResponse"
         "400":
-          description: Validation error, or the plan was not found
+          description: Validation error, the plan was not found, or the plan is not PUBLISHED and the caller isn't already on it
           content:
             application/json:
               schema:
