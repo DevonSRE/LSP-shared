@@ -28,6 +28,21 @@ tags:
       Accessible to Judge, Legal Aide, Registrar, and Platform Admin users.
       The payout account can only be set once per court — see endpoint
       description below.
+  - name: Court Subscription Billing
+    description: >
+      Devon → Court subscription plans and billing (distinct from Court
+      Payment Configuration, which is Court → Lawyer). Platform Admin
+      defines plans; a court checks out via Paystack (one-time per cycle
+      or recurring/AUTO once a reusable card is on file). Accessible to
+      Judge, Legal Aide, Registrar, and Platform Admin users, scoped to
+      the caller's own court except plan creation (Platform Admin only).
+  - name: Court Invoices
+    description: >
+      Billing records for Court Subscription Billing — both cycle-driven
+      (from checkout/recurring charges) and ad-hoc invoices a Platform
+      Admin raises outside the normal cycle. Reading/receipts are
+      court-scoped; raising, reminding, reconciling, and waiving are
+      Platform Admin only.
   - name: Users
     description: Create and manage platform users
   - name: Retraining
@@ -548,6 +563,220 @@ components:
           type: string
           format: date-time
         updated_at:
+          type: string
+          format: date-time
+
+    # ── Court Subscription Billing ───────────────────────────────────────────
+
+    BillingCycle:
+      type: string
+      enum: [MONTHLY, QUARTERLY, BIANNUAL, ANNUAL]
+
+    PlanStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, ARCHIVED]
+      description: >
+        Only PUBLISHED is reachable today — plan lifecycle management
+        (Draft/Archive/Duplicate) is not yet built; CreatePlan always
+        creates a PUBLISHED plan.
+
+    SubscriptionRenewal:
+      type: string
+      enum: [MANUAL, AUTO]
+
+    SubscriptionStatus:
+      type: string
+      enum: [ACTIVE, GRACE, SUSPENDED]
+      description: >
+        SUSPENDED is not yet reachable — automatic suspension after grace
+        expires is not built (Dunning settings / Workflow 5). GRACE is
+        entered automatically only for AUTO subscriptions after a failed
+        recurring charge.
+
+    CourtSubscriptionPlanRequest:
+      type: object
+      required: [name, price, billing_cycle]
+      properties:
+        name:
+          type: string
+          example: "Standard"
+        price:
+          type: integer
+          format: int64
+          description: Per billing cycle, in kobo.
+          example: 15000000
+        billing_cycle:
+          $ref: "#/components/schemas/BillingCycle"
+
+    CourtSubscriptionPlanResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        price:
+          type: integer
+          format: int64
+          description: In kobo.
+        billing_cycle:
+          $ref: "#/components/schemas/BillingCycle"
+        status:
+          $ref: "#/components/schemas/PlanStatus"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CourtSubscriptionCheckoutRequest:
+      type: object
+      required: [plan_id]
+      properties:
+        plan_id:
+          type: integer
+          format: int64
+
+    CourtSubscriptionCheckoutResponse:
+      type: object
+      properties:
+        authorization_url:
+          type: string
+          description: Redirect the court here to complete payment on Paystack.
+        reference:
+          type: string
+          description: Paystack transaction reference — pass this to /court/subscription/verify.
+        invoice_ref:
+          type: string
+
+    CourtSubscriptionVerifyRequest:
+      type: object
+      required: [reference]
+      properties:
+        reference:
+          type: string
+          description: >
+            The Paystack reference from checkout. Nothing else is trusted
+            from the client — court, plan, and expected amount all come
+            from the backend's own pending invoice record keyed by this
+            reference.
+
+    CourtSubscriptionRenewalModeRequest:
+      type: object
+      required: [renewal_mode]
+      properties:
+        renewal_mode:
+          $ref: "#/components/schemas/SubscriptionRenewal"
+          description: >
+            Setting AUTO requires a reusable Paystack authorization already
+            on file (captured automatically from any prior successful
+            payment) — returns a 400 if none exists yet. Never triggers a
+            charge by itself.
+
+    CourtSubscriptionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        court_id:
+          type: integer
+          format: int64
+        plan_id:
+          type: integer
+          format: int64
+        plan_name:
+          type: string
+        renewal_mode:
+          $ref: "#/components/schemas/SubscriptionRenewal"
+        status:
+          $ref: "#/components/schemas/SubscriptionStatus"
+        fee:
+          type: integer
+          format: int64
+          description: In kobo, snapshotted at last renewal.
+        next_billing_date:
+          type: string
+          format: date-time
+        has_saved_card:
+          type: boolean
+          description: Whether a reusable Paystack authorization is on file — required before renewal_mode can be set to AUTO.
+        retry_count:
+          type: integer
+          description: Consecutive failed recurring-charge attempts since the subscription last entered GRACE. Resets to 0 on any successful charge.
+
+    # ── Court Invoices ────────────────────────────────────────────────────────
+
+    InvoiceStatus:
+      type: string
+      enum: [PENDING, OVERDUE, PAID, WAIVED]
+
+    PaymentMethod:
+      type: string
+      enum: [PAYSTACK_ONE_TIME, PAYSTACK_RECURRING, MANUAL, WAIVED]
+
+    InvoiceRaiseRequest:
+      type: object
+      required: [court_id, period, amount, due_date]
+      properties:
+        court_id:
+          type: integer
+          format: int64
+        period:
+          type: string
+          example: "Sep 2026"
+        amount:
+          type: integer
+          format: int64
+          description: In kobo.
+        due_date:
+          type: string
+          format: date-time
+
+    InvoiceWaiveRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          description: Required — recorded in the audit trail.
+          example: "NJC pilot programme"
+
+    InvoiceResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        court_id:
+          type: integer
+          format: int64
+        subscription_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: Null for ad-hoc invoices raised outside the normal billing cycle.
+        ref:
+          type: string
+          example: "INV-2026-041"
+        period:
+          type: string
+        amount:
+          type: integer
+          format: int64
+          description: In kobo. Zeroed when status is WAIVED.
+        due_date:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/InvoiceStatus"
+        paid_via:
+          $ref: "#/components/schemas/PaymentMethod"
+        waiver_reason:
+          type: string
+        created_at:
           type: string
           format: date-time
 
@@ -1517,6 +1746,355 @@ paths:
           description: >
             Validation error, or a rejected attempt to change an
             already-locked payout account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  # ── Court Subscription Billing ──────────────────────────────────────────────
+
+  /court/subscription-plans:
+    get:
+      tags: [Court Subscription Billing]
+      summary: List subscription plans
+      description: Accessible to Judge, Legal Aide, Registrar, and Platform Admin users.
+      responses:
+        "200":
+          description: Plan list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+    post:
+      tags: [Court Subscription Billing]
+      summary: Create a subscription plan
+      description: >
+        Platform Admin only. Editing an existing plan's price (not yet a
+        documented endpoint — no update/archive/duplicate API exists yet,
+        see Plans lifecycle, not built) never retroactively changes an
+        already-locked-in subscription's fee — only future
+        subscribe/renew actions use a new price.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourtSubscriptionPlanRequest"
+      responses:
+        "201":
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/subscription:
+    get:
+      tags: [Court Subscription Billing]
+      summary: Get the caller's court subscription
+      description: >
+        Accessible to Judge, Legal Aide, Registrar, and Platform Admin
+        users. Scoped to the authenticated user's own court. Returns a
+        200 with an empty/zero-value response if the court has never
+        subscribed — a normal first-time state, not an error.
+      responses:
+        "200":
+          description: Current subscription (or an unsubscribed default)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionResponse"
+
+  /court/subscription/checkout:
+    post:
+      tags: [Court Subscription Billing]
+      summary: Start paying for a plan/cycle
+      description: >
+        Initiates a backend-side Paystack transaction (the backend, not
+        the frontend, calls Paystack — it already knows the court, plan,
+        and price) and returns a redirect URL. Every call starts a fresh
+        Paystack transaction; a prior abandoned attempt's link is never
+        reused.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourtSubscriptionCheckoutRequest"
+      responses:
+        "200":
+          description: Redirect the court to authorization_url to complete payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionCheckoutResponse"
+        "400":
+          description: Validation error, or the plan was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/subscription/verify:
+    post:
+      tags: [Court Subscription Billing]
+      summary: Confirm a checkout payment and activate/extend the subscription
+      description: >
+        Call this after Paystack redirects the court back. Idempotent — a
+        reload/re-hit with an already-processed reference is a no-op, not
+        a second extension. Rejects if the verified amount doesn't match
+        the plan's price, or if Paystack reports the payment as anything
+        other than successful.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourtSubscriptionVerifyRequest"
+      responses:
+        "200":
+          description: Subscription activated/extended (or unchanged, if already applied)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionResponse"
+        "400":
+          description: >
+            No payment found for this reference, payment not completed,
+            or amount mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/subscription/renewal-mode:
+    post:
+      tags: [Court Subscription Billing]
+      summary: Switch between manual and automatic renewal
+      description: >
+        Never charges the court — setting AUTO only reuses a reusable
+        Paystack authorization already captured from a prior successful
+        payment (has_saved_card on the subscription response).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourtSubscriptionRenewalModeRequest"
+      responses:
+        "200":
+          description: Renewal mode updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionResponse"
+        "400":
+          description: No subscription to modify, or no saved card on file for AUTO
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /public/court-billing/paystack/webhook:
+    post:
+      tags: [Court Subscription Billing]
+      summary: Paystack recurring-charge webhook (charge.success / charge.failed)
+      description: >
+        Called by Paystack directly, not by JudicAI frontends — no auth
+        middleware. Trust comes entirely from verifying the
+        X-Paystack-Signature header (HMAC-SHA512 of the raw request body,
+        keyed by the Paystack secret key) before anything in the payload
+        is acted on. Drives Workflow 2 (recurring/AUTO billing) only —
+        one-time checkout is confirmed synchronously via
+        /court/subscription/verify instead.
+      responses:
+        "200":
+          description: Event processed (or intentionally ignored, e.g. an unknown reference or uninteresting event type)
+        "400":
+          description: Invalid signature or payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  # ── Court Invoices ───────────────────────────────────────────────────────────
+
+  /court/invoices:
+    get:
+      tags: [Court Invoices]
+      summary: List the caller's court's invoices
+      description: >
+        Accessible to Judge, Legal Aide, Registrar, and Platform Admin
+        users. Scoped to the authenticated user's own court. Includes
+        both cycle-driven (from checkout/recurring charges) and ad-hoc
+        invoices together.
+      responses:
+        "200":
+          description: Invoice list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InvoiceResponse"
+    post:
+      tags: [Court Invoices]
+      summary: Raise an ad-hoc invoice
+      description: >
+        Platform Admin only. Bills a court outside the normal
+        subscription cycle — the resulting invoice has no
+        subscription_id.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceRaiseRequest"
+      responses:
+        "201":
+          description: Invoice raised
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/invoices/{id}/receipt:
+    get:
+      tags: [Court Invoices]
+      summary: Get a paid invoice's receipt details
+      description: >
+        Accessible to Judge, Legal Aide, Registrar, and Platform Admin
+        users. Non-admin callers are scoped to their own court — a
+        cross-tenant request gets the same 400 as a nonexistent invoice,
+        no existence leak. Returns an error if the invoice isn't PAID yet.
+        Does not generate a downloadable PDF — this returns invoice
+        details only.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceResponse"
+        "400":
+          description: Invoice not found (including cross-tenant), or not yet paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/invoices/{id}/remind:
+    post:
+      tags: [Court Invoices]
+      summary: Send an on-demand reminder for a pending/overdue invoice
+      description: >
+        Platform Admin only. Recipient is whatever email was captured
+        from the court's last successful subscription payment — a court
+        that has never paid has no reminder recipient on file yet and
+        this returns a 400 in that case (known limitation: does not fall
+        back to looking up court staff more broadly).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Reminder sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+        "400":
+          description: Invoice not found, not in a remindable status, or no billing contact on file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/invoices/{id}/mark-paid:
+    post:
+      tags: [Court Invoices]
+      summary: Record a manual/offline payment
+      description: >
+        Platform Admin only. Idempotent — calling this again on an
+        already-PAID invoice is a no-op, not an error. If the invoice is
+        tied to a subscription cycle, the subscription reactivates/
+        extends exactly like a successful Paystack charge would.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Invoice marked paid (subscription reactivated/extended if applicable)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceResponse"
+        "400":
+          description: Invoice not found, or already waived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /court/invoices/{id}/waive:
+    post:
+      tags: [Court Invoices]
+      summary: Waive an invoice
+      description: >
+        Platform Admin only. Zeroes the amount and requires a reason,
+        recorded in the audit trail. Rejected if the invoice is already
+        paid.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InvoiceWaiveRequest"
+      responses:
+        "200":
+          description: Invoice waived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceResponse"
+        "400":
+          description: Invoice not found, or already paid
           content:
             application/json:
               schema:
