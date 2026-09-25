@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-09-25 — Bank transfer payments and `paid_via`
+
+**Tag:** Web · **BREAKING** for one field value: `paid_via` no longer returns `PAYSTACK_ONE_TIME`. Nothing has consumed it yet; treat any stored or hard-coded `PAYSTACK_ONE_TIME` as `PAYSTACK_CARD`, `PAYSTACK_TRANSFER` or `PAYSTACK_OTHER`.
+
+- **`paid_via` now says how the payment was made.** Checkout payments are recorded by the Paystack channel the court used:
+
+| Value | Meaning |
+|---|---|
+| `PAYSTACK_CARD` | Checkout, paid by card |
+| `PAYSTACK_TRANSFER` | Checkout, paid by bank transfer |
+| `PAYSTACK_OTHER` | Checkout, USSD, QR, mobile money or another channel |
+| `PAYSTACK_RECURRING` | Automatic charge of a saved card |
+| `MANUAL` | A Platform Admin recorded the payment (unchanged) |
+| `WAIVED` | No money collected (unchanged) |
+
+- **Courts can pay by bank transfer.** Nothing extra is needed. Only a card can be saved for auto-renewal, so a court that pays by transfer has `has_saved_card: false`, and `POST /court/subscription/renewal-mode` with `AUTO` is refused (400). It stays on manual renewal and pays each cycle through checkout.
+- **A transfer that lands after the court leaves the page** is now confirmed by the Paystack webhook, the same way as any other payment, and the subscription activates on its own. Previously the webhook labelled these as recurring charges.
+- **Clearer error** when a court tries to switch to `AUTO` without a card: "Auto-renew needs a saved card. Pay once by card to enable it — bank transfer payments can't be renewed automatically".
+
+See `openapi.yaml` (`PaymentMethod` schema, `renewal-mode` and the webhook).
+
 ## 2026-09-25 — Platform Admin billing endpoints moved under `/platform`
 
 **Tag:** Web · **BREAKING** — every Platform Admin-only billing URL changes. Requests to the old paths return 404. Platform Admin billing screens (plans, invoices) must be updated together with this release; no external consumer is known.
@@ -80,7 +101,7 @@ New endpoints — no existing contract changed. This is the **Devon → Court** 
 - `POST /court/subscription/checkout` — start paying for a plan/cycle; backend-initiated Paystack transaction, returns a redirect URL.
 - `POST /court/subscription/verify` — confirm payment after the Paystack redirect; idempotent, amount-checked.
 - `POST /court/subscription/renewal-mode` — switch between `MANUAL` and `AUTO` renewal. Never charges the court — `AUTO` only reuses a card already on file.
-- `POST /public/court-billing/paystack/webhook` — Paystack calls this directly (no auth middleware, signature-verified). Drives recurring/`AUTO` billing only.
+- `POST /public/court-billing/paystack/webhook` — Paystack calls this directly (no auth middleware, signature-verified). Drives recurring/`AUTO` billing. ~~only~~ **Updated 2026-09-25:** it also confirms a checkout payment that completes after the court leaves the page (bank transfer).
 
 **Invoices**
 - `GET/POST /court/invoices` — list (court-scoped) / raise an ad-hoc invoice (Platform Admin only).

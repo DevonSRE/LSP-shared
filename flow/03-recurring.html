@@ -10,7 +10,7 @@
 <div class="wrap">
   <div class="crumb"><a href="index.html">Flowcharts</a> / Recurring billing</div>
   <h1>Recurring billing — auto-renewal, retries and grace</h1>
-  <p class="sub">A court switches on auto-renewal once, then a daily job charges its saved card. Paystack reports the outcome through a webhook, which is the only thing that can mark an automatic charge paid. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
+  <p class="sub">A court switches on auto-renewal once, then a daily job charges its saved card. Paystack reports the outcome through a webhook, which is the only thing that can mark an automatic charge paid. Auto-renewal needs a saved card, so it only applies to courts that have paid by card. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
   <div class="audience">
     <span class="label">Used by</span> <span class="aud court">Court Admin</span><span class="aud-role">turns auto-renew on or off</span> <span class="aud admin">Platform Admin</span><span class="aud-role">can settle a failed charge by hand</span>
   </div>
@@ -119,6 +119,7 @@ flowchart TD
   <div class="notes">
     <h2>Things worth knowing</h2>
     <ul>
+      <li>A court that only ever pays by bank transfer has no saved card, so it can't use auto-renew. It stays on manual renewal and pays each cycle through <a href="02-court-checkout.html">checkout</a>.</li>
       <li>Turning on auto-renew never charges the court. It only reuses a card saved from an earlier payment, so a court has to pay once by hand first.</li>
       <li>The immediate reply from Paystack's charge call is deliberately ignored. Only the signed webhook can mark the invoice paid, so one payment can never be applied by two code paths.</li>
       <li>Retries stop after 3 failed attempts and the subscription stays in <code>GRACE</code>. That limit is a fixed value for now.</li>
