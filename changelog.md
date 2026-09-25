@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-25 — Invoice list across courts, reminders reach a court's Judges, safe error messages
+
+**Tag:** Web · NON-BREAKING for request shapes. One new endpoint, one behaviour change to reminders, and a change to error message text (below).
+
+- **New: `GET /platform/court-invoices`** (Platform Admin) — every invoice across all courts, newest first, paginated, with `court_name` and `plan_name` on each row. Filters: `court_id`, `status` (`PENDING`, `OVERDUE`, `PAID`, `WAIVED`; anything else is a 400), `search` (invoice reference or court name), `page`, `size`. The admin Invoices tab can now list existing invoices instead of only ones raised in the current session.
+- **Invoice reminders no longer fail for a court that has never paid.** `POST /platform/court-invoices/{id}/remind` goes to the court's billing contact (the email from its last payment) if it has one; otherwise to the court's Judges: every active Judge with an email, once each. It is a 400 only if the court has neither. It counts as sent if at least one address was reached.
+- **Error messages are now safe to show.** A billing endpoint used to put the database error text in `message` when something unexpected went wrong (for example `POST /court/subscription/verify` returned `ERROR: relation "invoices" does not exist (SQLSTATE 42P01)`). Now `message` is a plain sentence ("Something went wrong on our side. Please try again.") and the technical detail is in `data.error`, as on the other billing endpoints. This covers the subscription, plan, invoice and dunning endpoints. Errors the backend raises on purpose ("Plan not found", "A reason is required") are unchanged, except that they **no longer start with "Error: "**. A failed reminder no longer includes the mail provider's error text.
+- **Migrations run on every start.** The `RUN_MIGRATIONS` setting is gone: a redeploy always creates any missing table. This is what the staging "relation … does not exist" errors needed.
+
+See `openapi.yaml` (`Court Invoices` tag).
+
 ## 2026-09-25 — Court subscription screen, recording offline payments, ledger and confirmation email
 
 **Tag:** Web · NON-BREAKING for request shapes. Additive fields and new endpoints, plus two behaviour changes flagged below.

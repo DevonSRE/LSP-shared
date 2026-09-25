@@ -57,11 +57,12 @@ flowchart TD
 
   c1["&lt;b&gt;See my invoices&lt;/b&gt;&lt;br/&gt;GET /court/invoices"]
   c2["&lt;b&gt;Get a receipt&lt;/b&gt;&lt;br/&gt;GET /court/invoices/{id}/receipt"]
+  il["&lt;b&gt;See every invoice&lt;/b&gt;&lt;br/&gt;GET /platform/court-invoices&lt;br/&gt;court_id, status, search, page, size&lt;br/&gt;each row has the court name"]
   a1["&lt;b&gt;Send a reminder&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices/{id}/remind"]
   a2["&lt;b&gt;Mark paid&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices/{id}/mark-paid"]
   a3["&lt;b&gt;Waive&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices/{id}/waive&lt;br/&gt;body: reason"]
 
-  b2{"Court has a billing email&lt;br/&gt;from a past payment?"}
+  b2{"Known billing contact,&lt;br/&gt;or a Judge with an email?"}
   b3["Email sent, logged to audit trail"]
   b4{"Tied to a subscription?"}
   b5["Subscription reactivated / extended&lt;br/&gt;exactly like a Paystack charge"]
@@ -69,7 +70,7 @@ flowchart TD
   b8{"Belongs to my court&lt;br/&gt;(or caller is Platform Admin)?"}
 
   e1["400: only pending or overdue can be reminded"]
-  e2["400: no billing contact on file yet"]
+  e2["400: no billing contact and&lt;br/&gt;no Judge with an email"]
   e3["400: a waived invoice can't be marked paid"]
   e4["400: can't waive a paid invoice"]
   e5["400: invoice not found&lt;br/&gt;(same answer for another court's invoice)"]
@@ -93,6 +94,7 @@ flowchart TD
   o1 --> sOpen
   o2 --> sOpen
   sOpen --> c1
+  il -.->|"pick an invoice"| sOpen
   sOpen --> a1
   sOpen --> a2
   sOpen --> a3
@@ -122,7 +124,7 @@ flowchart TD
   classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
   classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
   classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
-  class p1,p2,p3,pr,pl,o2,a1,a2,a3 admin
+  class p1,p2,p3,pr,pl,il,o2,a1,a2,a3 admin
   class c1,c2 court
   class r1,r2,r3,pr1,pl1,o1,b2,b3,b4,b5,b6,b8 system
   class sOpen,sPaid,sW state
@@ -133,7 +135,7 @@ flowchart TD
   <div class="notes">
     <h2>Things worth knowing</h2>
     <ul>
-      <li>The three subscription views and the ledger are Platform Admin only and read-only. They change nothing.</li>
+      <li>The invoice list, the three subscription views and the ledger are Platform Admin only and read-only. They change nothing.</li>
       <li><b>Recording an offline payment</b> is how an existing court's earlier payments and its current one get onto the platform. A payment whose period has already ended is history only. For a court with no subscription it creates none, because a subscription that is already lapsed would only get the court suspended for a payment made long ago. No email is sent for a recorded payment.</li>
       <li>The ledger lists court-level events only. Plan and settings changes are not in it.</li>
       <li>The list shows every court, including ones that have never subscribed (status <code>NONE</code>). <code>start_date</code> and <code>end_date</code> are the currently paid period; <code>subscribed_since</code> is when the court first subscribed.</li>
@@ -141,7 +143,7 @@ flowchart TD
       <li>An attempt is any checkout or automatic charge, whatever happened. <b>Pending</b> means the court abandoned checkout, or a bank transfer hasn't landed yet. <b>Overdue</b> means an automatic charge failed. Ad-hoc invoices raised by an admin are not attempts.</li>
       <li>Raising, reminding, marking paid and waiving are Platform Admin only. Listing and receipts are open to court users, scoped to their own court.</li>
       <li>Marking an invoice paid that belongs to a subscription reactivates and extends that subscription the same way a successful Paystack payment does — the logic isn't duplicated.</li>
-      <li>Reminders only work for a court that has paid at least once, because the recipient is the email captured from its last successful payment. There's no wider lookup of court staff yet.</li>
+      <li>A reminder goes to the court's billing contact (the email from its last payment) if there is one. A court that has never paid gets it at its Judges' emails instead. It is refused only if the court has neither.</li>
       <li>The receipt endpoint returns the invoice details. It doesn't generate a downloadable PDF.</li>
     </ul>
   </div>

@@ -1265,6 +1265,53 @@ components:
         offline transfer). WAIVED means no money was collected. Only a
         card payment can be saved for auto-renewal.
 
+    AdminInvoiceResponse:
+      type: object
+      description: One invoice in the Platform Admin list across all courts.
+      properties:
+        id:
+          type: integer
+          format: int64
+        court_id:
+          type: integer
+          format: int64
+        court_name:
+          type: string
+        subscription_id:
+          type: integer
+          format: int64
+          nullable: true
+        plan_id:
+          type: integer
+          format: int64
+          description: 0 for an ad-hoc invoice, which is not tied to a plan.
+        plan_name:
+          type: string
+        ref:
+          type: string
+        period:
+          type: string
+        amount:
+          type: integer
+          format: int64
+          description: In kobo.
+        due_date:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/InvoiceStatus"
+        paid_via:
+          $ref: "#/components/schemas/PaymentMethod"
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        waiver_reason:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
     InvoiceRaiseRequest:
       type: object
       required: [court_id, period, amount, due_date]
@@ -3011,6 +3058,58 @@ paths:
                   $ref: "#/components/schemas/InvoiceResponse"
 
   /platform/court-invoices:
+    get:
+      tags: [Court Invoices]
+      summary: List invoices across all courts
+      description: >
+        Platform Admin only. Every invoice, cycle-driven and ad-hoc, newest
+        first, with the court's name and the plan's name so the list needs no
+        second lookup. An ad-hoc invoice has no plan (plan_id 0, plan_name
+        empty). Read-only.
+      parameters:
+        - name: court_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/InvoiceStatus"
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Matches the invoice reference or the court's name (case-insensitive).
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated invoice list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResult"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/AdminInvoiceResponse"
+        "400":
+          description: Unknown status filter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
     post:
       tags: [Court Invoices]
       summary: Raise an ad-hoc invoice
@@ -3075,11 +3174,13 @@ paths:
       tags: [Court Invoices]
       summary: Send an on-demand reminder for a pending/overdue invoice
       description: >
-        Platform Admin only. Recipient is whatever email was captured
-        from the court's last successful subscription payment — a court
-        that has never paid has no reminder recipient on file yet and
-        this returns a 400 in that case (known limitation: does not fall
-        back to looking up court staff more broadly).
+        Platform Admin only. The reminder goes to the court's billing
+        contact (the email captured from its last successful subscription
+        payment) if there is one. A court that has never paid has none, so
+        the reminder goes to the court's Judges instead: every active Judge
+        with an email address, once each. It is a 400 only if the court has
+        neither. The reminder counts as sent if at least one address was
+        reached.
       parameters:
         - name: id
           in: path
