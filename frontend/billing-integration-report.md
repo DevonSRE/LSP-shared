@@ -3,12 +3,57 @@
 **Module:** Court Subscription Billing, Court Invoices, Court Payment Configuration, Court → Lawyer payments
 **Raised by:** Frontend team
 **Date:** 2026-09-25
-**Status:** Open
+**Status:** Open — status updated 2026-09-25, 16:45 UTC (see [Status update](#status-update--2026-09-25-1645-utc))
 **Source documents:** `openapi.yaml` (Court Subscription Billing, Court Invoices, Court Payment Configuration tags), `changelog.md` (entries up to 2026-09-25, "Platform Admin subscription views"), `guide/PRD-court-subscription-billing.md`
 
 The frontend has integrated every Court Subscription Billing, Court Invoices and Court Payment Configuration endpoint documented in `openapi.yaml` as of the 2026-09-25 morning releases, and ran an end-to-end test through the real UI against staging (`https://api.staging1.lsp.devontech.io/api/v1`) with a Platform Admin and a court (Judge) account. Every request below was recorded with its full body and response; the raw evidence is in the [Appendix](#appendix--raw-requestresponse-evidence).
 
 **Result in one line:** the routes are deployed and accept our tokens, but **every call fails because the database migrations have not run on staging**. Nothing beyond that point can be verified until they do. Separately, some screens need endpoints that don't exist yet (section 3).
+
+---
+
+## Status update — 2026-09-25, 16:45 UTC
+
+The frontend has integrated the three backend releases from this afternoon (Platform Admin subscription views, dunning/grace/suspension, verify-only confirmation, court subscription screen, ledger, record payment) and re-checked staging with a Platform Admin and a Judge. **Staging has not caught up with the documentation**: some new routes are not deployed, and no billing table exists yet.
+
+### What the backend has resolved
+
+| Item | Resolved by |
+|---|---|
+| REQ-B02 — put a court on a plan without Paystack | `POST /platform/court-subscriptions/{court_id}?action=record-payment` |
+| REQ-B03 — billing history | `GET /platform/subscription-ledger` (documented; **not deployed on staging**, see G2) |
+| REQ-B04 — dunning rules | `GET/PUT /platform/dunning-settings` (the "pause all billing" switch is not included — see G7) |
+| REQ-B05 — automatic suspension | Daily 07:30 job: ACTIVE → GRACE → SUSPENDED |
+| Q2 — which statuses are read-only | GRACE warns only; SUSPENDED pauses case writes with `403 SUBSCRIPTION_SUSPENDED` (matches the frontend) |
+| Q5 — who receives reminders | Renewal reminders and payment confirmations go to every active Judge, Registrar and Legal Aide |
+| BUG-02 — SQL in verify's `message` | Documented as fixed (`data.code` + user-safe `message`), but **staging still returns the SQL error** — see G3 |
+| Cross-court subscription list (frontend "no data source" gap) | `GET /platform/court-subscriptions`, `/{court_id}`, `/{court_id}/attempts` |
+
+### Still open — backend action needed
+
+| # | Gap | Evidence | Ask |
+|---|---|---|---|
+| **G1** | **No billing table exists on staging.** Now five: `court_subscriptions`, `court_subscription_plans`, `invoices`, `court_payment_configs`, `dunning_settings`. | [E9](#e9-get-platformcourt-subscriptions--platform-admin), [E10](#e10-get-platformdunning-settings--platform-admin), [E13](#e13-get-courtsubscription-plans--court-user-judge), plus E1–E8 | Run the billing migrations on staging. This still blocks every billing screen. |
+| **G2** | **Documented routes not deployed on staging** — both return `404 Cannot GET`. | [E11](#e11-get-platformsubscription-ledger--platform-admin) `GET /platform/subscription-ledger`, [E12](#e12-get-courtsubscriptionpayments--court-user-judge) `GET /court/subscription/payments` | Deploy the 16:09 release (court subscription screen, ledger, record payment) to staging. |
+| **G3** | **Raw SQL errors in user-facing `message`.** `verify` still does it on staging (the fix isn't deployed), and `GET /platform/court-subscriptions` does it too. | [E14](#e14-post-courtsubscriptionverify--court-user-judge), [E9](#e9-get-platformcourt-subscriptions--platform-admin) | Deploy the verify fix; return a user-safe `message` from every billing handler and keep detail in `data.error`. |
+| **G4** | **No invoice list across courts** (REQ-B01). `POST /platform/court-invoices` exists; there is no `GET`. Admins can only act on invoices raised in their current session. | — | Add `GET /platform/court-invoices` (filters: court, status, search; paginated; include `court_name`). |
+| **G5** | **Court → Lawyer payments don't exist** (REQ-B06): backend-priced checkout for copies/CTC/virtual hearing, transactions, settlements, payments audit. The public cause-list page still charges a flat ₦5,000 from a frontend setting, straight from the browser. | — | Build per REQ-B06. |
+| **G6** | **Payment configuration additions** (REQ-B07): virtual hearing fee, bank list and account-name lookup, settlement-account change request with admin approval, Paystack subaccount per court. | — | Build per REQ-B07. |
+| **G7** | **"Pause all billing"** switch for the Settings tab (explicitly excluded from Workflow 5), plus payment-provider status and default settlement split. | — | Confirm whether it's planned; the tab stays layout-only until then. |
+| **G8** | **Receipt PDF** (REQ-B08, acknowledged). `GET /court/invoices/{id}/receipt` returns details only. | — | Optional; courts will want a document to file. |
+
+### Questions still unanswered
+
+| # | Question |
+|---|---|
+| Q1 | **Paystack `callback_url`.** It must be `${APP_URL}/subscription/callback`: the session cookie is `SameSite=Strict`, so a return to any `/dashboard/*` URL lands the court on the login page and loses the reference. What does checkout send today? |
+| Q3 | **Auth header on `/platform/court-*`, `/platform/court-subscriptions*`, `/platform/dunning-settings`, `/platform/subscription-ledger`.** The frontend sends `Bearer <token>`; the older `/platform/*` routes accept a bare token. Confirm Bearer. |
+| Q4 | **Response envelopes.** The frontend reads plan lists, plan cards and `GET /court/invoices` as bare arrays and `court-subscriptions`, `subscription/payments`, `subscription-ledger` and `attempts` as `PaginatedResult` (it tolerates a `{status, message, data}` wrap). Confirm. |
+| Q6 | **Renewal link domain.** `COURT_BILLING_RENEW_URL` defaults to `https://judicai.devontech.io/subscription`. Confirm this is the production frontend's domain, and set it per environment (staging reminders should link to staging). The frontend now serves `/subscription?plan_id=…&cycle=…` and forwards it to the Billing screen. |
+
+### Not yet verifiable from the frontend
+
+`/platform/courts` and `/platform/court-configurations` (the 2026-09-25 path move) are wired in the frontend but were not checked against staging in this pass.
 
 ---
 
@@ -372,6 +417,136 @@ Request body:
 ```json
 {
   "reference": "E2E-TEST-NONEXISTENT"
+}
+```
+
+Response (HTTP 400):
+
+```json
+{
+  "status": false,
+  "message": "ERROR: relation \"invoices\" does not exist (SQLSTATE 42P01)",
+  "data": null
+}
+```
+
+### E9. `GET /platform/court-subscriptions` — Platform Admin
+
+- **URL:** `https://api.staging1.lsp.devontech.io/api/v1/platform/court-subscriptions?page=1&size=1000`
+- **Time:** 2026-09-25T15:39:12.928Z · 377 ms
+- **Auth:** `Authorization: Bearer <redacted>`
+
+Request body:
+
+```json
+null
+```
+
+Response (HTTP 400):
+
+```json
+{
+  "status": false,
+  "message": "ERROR: relation \"court_subscriptions\" does not exist (SQLSTATE 42P01)",
+  "data": null
+}
+```
+
+### E10. `GET /platform/dunning-settings` — Platform Admin
+
+- **URL:** `https://api.staging1.lsp.devontech.io/api/v1/platform/dunning-settings`
+- **Time:** 2026-09-25T15:39:12.927Z · 374 ms
+- **Auth:** `Authorization: Bearer <redacted>`
+
+Request body:
+
+```json
+null
+```
+
+Response (HTTP 400):
+
+```json
+{
+  "status": false,
+  "message": "Error fetching dunning settings",
+  "data": {
+    "error": "ERROR: relation \"dunning_settings\" does not exist (SQLSTATE 42P01)"
+  }
+}
+```
+
+### E11. `GET /platform/subscription-ledger` — Platform Admin
+
+- **URL:** `https://api.staging1.lsp.devontech.io/api/v1/platform/subscription-ledger?page=1&size=25`
+- **Time:** 2026-09-25T15:39:12.931Z · 376 ms
+- **Auth:** `Authorization: Bearer <redacted>`
+
+Request body:
+
+```json
+null
+```
+
+Response (HTTP 404):
+
+```json
+"Cannot GET /api/v1/platform/subscription-ledger"
+```
+
+### E12. `GET /court/subscription/payments` — Court user (Judge)
+
+- **URL:** `https://api.staging1.lsp.devontech.io/api/v1/court/subscription/payments?page=1&size=10`
+- **Time:** 2026-09-25T15:40:49.489Z · 558 ms
+- **Auth:** `Authorization: Bearer <redacted>`
+
+Request body:
+
+```json
+null
+```
+
+Response (HTTP 404):
+
+```json
+"Cannot GET /api/v1/court/subscription/payments"
+```
+
+### E13. `GET /court/subscription-plans` — Court user (Judge)
+
+- **URL:** `https://api.staging1.lsp.devontech.io/api/v1/court/subscription-plans?view=cards`
+- **Time:** 2026-09-25T15:40:49.488Z · 558 ms
+- **Auth:** `Authorization: Bearer <redacted>`
+
+Request body:
+
+```json
+null
+```
+
+Response (HTTP 400):
+
+```json
+{
+  "status": false,
+  "message": "Error fetching plans",
+  "data": {
+    "error": "ERROR: relation \"court_subscription_plans\" does not exist (SQLSTATE 42P01)"
+  }
+}
+```
+
+### E14. `POST /court/subscription/verify` — Court user (Judge)
+
+- **URL:** `https://api.staging1.lsp.devontech.io/api/v1/court/subscription/verify`
+- **Time:** 2026-09-25T15:39:12.890Z · 404 ms
+- **Auth:** `Authorization: Bearer <redacted>`
+
+Request body:
+
+```json
+{
+  "reference": "E2E-RETEST-NONEXISTENT"
 }
 ```
 
