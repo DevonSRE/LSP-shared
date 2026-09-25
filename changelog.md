@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-09-25 — Platform Admin billing endpoints moved under `/platform`
+
+**Tag:** Web · **BREAKING** — every Platform Admin-only billing URL changes. Requests to the old paths return 404. Platform Admin billing screens (plans, invoices) must be updated together with this release; no external consumer is known.
+
+Convention going forward: **every endpoint only a Platform Admin can call lives under `/api/v1/platform/...`.** This release applies it to the billing endpoints built so far; the older Platform Admin endpoints (`/courts`, `/court_config`, ...) will be migrated in a follow-up and are unchanged here.
+
+| Old | New |
+|---|---|
+| `POST /court/subscription-plans` | `POST /platform/court-subscription-plans` |
+| `GET /court/subscription-plans/admin` | `GET /platform/court-subscription-plans` (lists every status; the `/admin` suffix is gone) |
+| `PATCH /court/subscription-plans/{id}` | `PATCH /platform/court-subscription-plans/{id}` |
+| `POST /court/subscription-plans/{id}?action=publish\|archive\|duplicate` | `POST /platform/court-subscription-plans/{id}?action=publish\|archive\|duplicate` |
+| `DELETE /court/subscription-plans/{id}` | `DELETE /platform/court-subscription-plans/{id}` |
+| `POST /court/invoices` | `POST /platform/court-invoices` |
+| `POST /court/invoices/{id}/remind` | `POST /platform/court-invoices/{id}/remind` |
+| `POST /court/invoices/{id}/mark-paid` | `POST /platform/court-invoices/{id}/mark-paid` |
+| `POST /court/invoices/{id}/waive` | `POST /platform/court-invoices/{id}/waive` |
+
+**Unchanged (court-facing):** `GET /court/subscription-plans` (published plans), `GET /court/invoices`, `GET /court/invoices/{id}/receipt`, `/court/subscription`, `/court/subscription/checkout|verify|renewal-mode`, and the public Paystack webhook. Request and response bodies, roles and behavior are identical.
+
+**Flowcharts renamed:** `flow/platform-admin-plans-workflow.html` is now `flow/01-platform-admin-plans-workflow.html` and `flow/02-checkout.html` is now `flow/02-court-checkout.html`.
+
+See `openapi.yaml` (`Court Subscription Billing` and `Court Invoices` tags).
+
 ## 2026-09-25 — Plan `created_by` and duplicate as a query action
 
 **Tag:** Web · **BREAKING** for `POST /court/subscription-plans/{id}/duplicate` only (Platform Admin plan screens; no external consumer known). The `created_by` field is additive.
@@ -19,7 +43,7 @@ See `openapi.yaml` (`Court Subscription Billing` tag, `CourtSubscriptionPlanResp
   - Now: `POST /court/subscription-plans/{id}?action=publish` and `?action=archive`. `action` is required; a missing or unknown value returns 400.
 - **Publish approval removed.** Publishing a plan priced above ₦200,000 no longer needs a second, different Platform Admin. Publishing is one call from one admin at any price. The `pending_approval` field is gone from the plan response.
 - **New: `DELETE /court/subscription-plans/{id}`** — deletes a plan, but only while it is still a `DRAFT` (soft delete). A plan that has been published, even if archived since, can only be archived.
-- **Flowchart:** `flow/01-plans.html` is now `flow/platform-admin-plans-workflow.html` and covers only the Platform Admin side of a plan (create, edit, publish, duplicate, archive, delete). The court-facing browse/checkout steps live in the checkout flowchart.
+- **Flowchart:** `flow/01-plans.html` is now `flow/01-platform-admin-plans-workflow.html` and covers only the Platform Admin side of a plan (create, edit, publish, duplicate, archive, delete). The court-facing browse/checkout steps live in the checkout flowchart.
 
 Unchanged: `POST /court/subscription-plans`, `GET /court/subscription-plans`, `GET /court/subscription-plans/admin`, `PATCH /court/subscription-plans/{id}`. (`/duplicate` moved later the same day — see the entry above.)
 

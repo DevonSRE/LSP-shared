@@ -37,16 +37,16 @@
 <pre class="mermaid">
 flowchart TD
   o1["Court checks out or is auto-charged&lt;br/&gt;POST /court/subscription/checkout · daily billing cron"]
-  o2["&lt;b&gt;Raise ad-hoc invoice&lt;/b&gt;&lt;br/&gt;POST /court/invoices&lt;br/&gt;court_id, period, amount, due_date"]
+  o2["&lt;b&gt;Raise ad-hoc invoice&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices&lt;br/&gt;court_id, period, amount, due_date"]
   sOpen(["PENDING / OVERDUE"])
   sPaid(["PAID"])
   sW(["WAIVED"])
 
   c1["&lt;b&gt;See my invoices&lt;/b&gt;&lt;br/&gt;GET /court/invoices"]
   c2["&lt;b&gt;Get a receipt&lt;/b&gt;&lt;br/&gt;GET /court/invoices/{id}/receipt"]
-  a1["&lt;b&gt;Send a reminder&lt;/b&gt;&lt;br/&gt;POST /court/invoices/{id}/remind"]
-  a2["&lt;b&gt;Mark paid&lt;/b&gt;&lt;br/&gt;POST /court/invoices/{id}/mark-paid"]
-  a3["&lt;b&gt;Waive&lt;/b&gt;&lt;br/&gt;POST /court/invoices/{id}/waive&lt;br/&gt;body: reason"]
+  a1["&lt;b&gt;Send a reminder&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices/{id}/remind"]
+  a2["&lt;b&gt;Mark paid&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices/{id}/mark-paid"]
+  a3["&lt;b&gt;Waive&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices/{id}/waive&lt;br/&gt;body: reason"]
 
   b2{"Court has a billing email&lt;br/&gt;from a past payment?"}
   b3["Email sent, logged to audit trail"]

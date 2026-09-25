@@ -26,14 +26,14 @@
 
   <h2 class="section-title">Court billing (Devon → Court)</h2>
   <div class="grid">
-    <a class="card" href="platform-admin-plans-workflow.html">
+    <a class="card" href="01-platform-admin-plans-workflow.html">
       <span class="chip built">BUILT</span>
       <h3>Platform Admin — plans workflow</h3>
       <p>Create, edit, publish, duplicate, archive and delete subscription plans. Publishing is one call, and only drafts can be deleted.</p>
       <div class="aud-row"><span class="aud admin">Platform Admin</span></div>
       <div class="meta">6 endpoints</div>
     </a>
-    <a class="card" href="02-checkout.html">
+    <a class="card" href="02-court-checkout.html">
       <span class="chip built">BUILT</span>
       <h3>Subscription checkout</h3>
       <p>A court picks a plan, pays on Paystack and is confirmed on return. Safe to retry, amount-checked.</p>
@@ -77,7 +77,7 @@
     <h2>Adding a flowchart</h2>
     <ul>
       <li>Copy any existing file in this folder, keep the same <code>&lt;head&gt;</code> and script block, and replace the diagram inside <code>&lt;pre class="mermaid"&gt;</code>.</li>
-      <li>Give every stage box its endpoint, e.g. <code>POST /court/invoices</code>. Use the same colours: blue Platform Admin, green Court Admin, purple Paystack/external, grey System, amber state, red rejection, dashed for not built.</li>
+      <li>Give every stage box its endpoint, e.g. <code>POST /platform/court-invoices</code>. Use the same colours: blue Platform Admin, green Court Admin, purple Paystack/external, grey System, amber state, red rejection, dashed for not built.</li>
       <li>Add a "Used by" row under the title with the <code>Platform Admin</code> and/or <code>Court Admin</code> badge, and the same badges on the index card.</li>
       <li>Number files in order (<code>06-…html</code>) and add a card above.</li>
       <li>Diagrams render with Mermaid loaded from a CDN, so open these with an internet connection.</li>

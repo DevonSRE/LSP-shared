@@ -10,7 +10,7 @@
 <div class="wrap">
   <div class="crumb"><a href="index.html">Flowcharts</a> / Platform Admin plans workflow</div>
   <h1>Platform Admin — plans workflow</h1>
-  <p class="sub">How a Platform Admin creates, edits, publishes, duplicates, archives and deletes a subscription plan. Every box shows the endpoint it calls (base path <code>/api/v1</code>). What a court does with a published plan is in the <a href="02-checkout.html">checkout</a> flowchart.</p>
+  <p class="sub">How a Platform Admin creates, edits, publishes, duplicates, archives and deletes a subscription plan. Every box shows the endpoint it calls (base path <code>/api/v1</code>). What a court does with a published plan is in the <a href="02-court-checkout.html">checkout</a> flowchart.</p>
   <div class="audience">
     <span class="label">Used by</span> <span class="aud admin">Platform Admin</span><span class="aud-role">the only user category that manages plans</span>
   </div>
@@ -33,13 +33,13 @@
   <div class="canvas">
 <pre class="mermaid">
 flowchart TD
-  a1["&lt;b&gt;Create plan&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans&lt;br/&gt;name, price, billing_cycle,&lt;br/&gt;optional waiver fields"]
-  a0["&lt;b&gt;Review every plan&lt;/b&gt;&lt;br/&gt;GET /court/subscription-plans/admin&lt;br/&gt;(draft, published and archived)"]
-  a2["&lt;b&gt;Edit plan&lt;/b&gt;&lt;br/&gt;PATCH /court/subscription-plans/{id}"]
-  a3["&lt;b&gt;Publish&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans/{id}?action=publish"]
-  a4["&lt;b&gt;Archive&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans/{id}?action=archive"]
-  a5["&lt;b&gt;Duplicate&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans/{id}?action=duplicate"]
-  a6["&lt;b&gt;Delete&lt;/b&gt;&lt;br/&gt;DELETE /court/subscription-plans/{id}"]
+  a1["&lt;b&gt;Create plan&lt;/b&gt;&lt;br/&gt;POST /platform/court-subscription-plans&lt;br/&gt;name, price, billing_cycle,&lt;br/&gt;optional waiver fields"]
+  a0["&lt;b&gt;Review every plan&lt;/b&gt;&lt;br/&gt;GET /platform/court-subscription-plans&lt;br/&gt;(draft, published and archived)"]
+  a2["&lt;b&gt;Edit plan&lt;/b&gt;&lt;br/&gt;PATCH /platform/court-subscription-plans/{id}"]
+  a3["&lt;b&gt;Publish&lt;/b&gt;&lt;br/&gt;POST /platform/court-subscription-plans/{id}?action=publish"]
+  a4["&lt;b&gt;Archive&lt;/b&gt;&lt;br/&gt;POST /platform/court-subscription-plans/{id}?action=archive"]
+  a5["&lt;b&gt;Duplicate&lt;/b&gt;&lt;br/&gt;POST /platform/court-subscription-plans/{id}?action=duplicate"]
+  a6["&lt;b&gt;Delete&lt;/b&gt;&lt;br/&gt;DELETE /platform/court-subscription-plans/{id}"]
 
   sDraft(["DRAFT"])
   sPub(["PUBLISHED"])

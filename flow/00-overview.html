@@ -37,7 +37,7 @@
   <div class="canvas">
 <pre class="mermaid">
 flowchart TD
-  a1["&lt;b&gt;Admin: manage plans&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans&lt;br/&gt;PATCH …/{id} · POST …/{id}?action=publish | archive | duplicate&lt;br/&gt;POST …/{id}?action=duplicate · DELETE …/{id}"]
+  a1["&lt;b&gt;Admin: manage plans&lt;/b&gt;&lt;br/&gt;POST /platform/court-subscription-plans&lt;br/&gt;PATCH …/{id} · DELETE …/{id}&lt;br/&gt;POST …/{id}?action=publish | archive | duplicate"]
   c1["&lt;b&gt;Court: browse plans&lt;/b&gt;&lt;br/&gt;GET /court/subscription-plans"]
   c2["&lt;b&gt;Court: pay&lt;/b&gt;&lt;br/&gt;POST /court/subscription/checkout"]
   p1["Paystack hosted checkout&lt;br/&gt;(external)"]
@@ -51,7 +51,7 @@ flowchart TD
   sG(["GRACE"])
   sS(["SUSPENDED + lockout"])
   k1["&lt;b&gt;06:30 waiver cap cron&lt;/b&gt;&lt;br/&gt;no endpoint"]
-  ia["&lt;b&gt;Admin: invoices&lt;/b&gt;&lt;br/&gt;POST /court/invoices&lt;br/&gt;POST …/{id}/remind | mark-paid | waive"]
+  ia["&lt;b&gt;Admin: invoices&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices&lt;br/&gt;POST …/{id}/remind | mark-paid | waive"]
   ic["&lt;b&gt;Court: invoices&lt;/b&gt;&lt;br/&gt;GET /court/invoices&lt;br/&gt;GET …/{id}/receipt"]
   pc["&lt;b&gt;Court → Lawyer settings&lt;/b&gt;&lt;br/&gt;GET · PUT /court/payment_config"]
 
@@ -87,8 +87,8 @@ flowchart TD
   <div class="notes">
     <h2>Detail views</h2>
     <ul>
-      <li><a href="platform-admin-plans-workflow.html">Platform Admin plans workflow</a> — create, edit, publish, duplicate, archive, delete</li>
-      <li><a href="02-checkout.html">Subscription checkout</a> — paying once per cycle</li>
+      <li><a href="01-platform-admin-plans-workflow.html">Platform Admin plans workflow</a> — create, edit, publish, duplicate, archive, delete</li>
+      <li><a href="02-court-checkout.html">Subscription checkout</a> — paying once per cycle</li>
       <li><a href="03-recurring.html">Recurring billing</a> — auto-renew, webhook, retries, grace</li>
       <li><a href="04-invoices.html">Invoices</a> — raise, remind, mark paid, waive, receipts</li>
       <li><a href="05-payment-config.html">Court payment configuration</a> — prices and payout account</li>

@@ -577,7 +577,7 @@ components:
       enum: [DRAFT, PUBLISHED, ARCHIVED]
       description: >
         A plan is created DRAFT, becomes PUBLISHED (selectable by courts)
-        via POST /court/subscription-plans/{id}?action=publish, and can be moved to ARCHIVED — which
+        via POST /platform/court-subscription-plans/{id}?action=publish, and can be moved to ARCHIVED — which
         stops new selection without force-migrating existing subscribers.
 
     SubscriptionRenewal:
@@ -1794,11 +1794,26 @@ paths:
       description: >
         Accessible to Judge, Legal Aide, Registrar, and Platform Admin
         users. Only PUBLISHED plans — what a court can actually select.
-        For DRAFT/ARCHIVED visibility, see
-        /court/subscription-plans/admin.
+        For DRAFT/ARCHIVED visibility, a
+        Platform Admin uses GET /platform/court-subscription-plans.
       responses:
         "200":
           description: Plan list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+
+  /platform/court-subscription-plans:
+    get:
+      tags: [Court Subscription Billing]
+      summary: List all subscription plans (any status)
+      description: Platform Admin only. For plan management screens — includes DRAFT and ARCHIVED plans alongside PUBLISHED.
+      responses:
+        "200":
+          description: Plan list, all statuses
           content:
             application/json:
               schema:
@@ -1810,8 +1825,8 @@ paths:
       summary: Create a subscription plan
       description: >
         Platform Admin only. Always creates a DRAFT — not selectable by
-        any court until published (POST /court/subscription-plans/{id}?action=publish). Editing an existing plan's price
-        (PATCH /court/subscription-plans/{id}) never retroactively
+        any court until published (POST /platform/court-subscription-plans/{id}?action=publish). Editing an existing plan's price
+        (PATCH /platform/court-subscription-plans/{id}) never retroactively
         changes an already-locked-in subscription's fee — only future
         subscribe/renew actions use a new price.
       requestBody:
@@ -1834,22 +1849,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
-  /court/subscription-plans/admin:
-    get:
-      tags: [Court Subscription Billing]
-      summary: List all subscription plans (any status)
-      description: Platform Admin only. For plan management screens — includes DRAFT and ARCHIVED plans alongside PUBLISHED.
-      responses:
-        "200":
-          description: Plan list, all statuses
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
-
-  /court/subscription-plans/{id}:
+  /platform/court-subscription-plans/{id}:
     patch:
       tags: [Court Subscription Billing]
       summary: Edit a plan's name/price/cycle/waiver fields
@@ -2117,6 +2117,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/InvoiceResponse"
+
+  /platform/court-invoices:
     post:
       tags: [Court Invoices]
       summary: Raise an ad-hoc invoice
@@ -2176,7 +2178,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
-  /court/invoices/{id}/remind:
+  /platform/court-invoices/{id}/remind:
     post:
       tags: [Court Invoices]
       summary: Send an on-demand reminder for a pending/overdue invoice
@@ -2207,7 +2209,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
-  /court/invoices/{id}/mark-paid:
+  /platform/court-invoices/{id}/mark-paid:
     post:
       tags: [Court Invoices]
       summary: Record a manual/offline payment
@@ -2237,7 +2239,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
-  /court/invoices/{id}/waive:
+  /platform/court-invoices/{id}/waive:
     post:
       tags: [Court Invoices]
       summary: Waive an invoice
