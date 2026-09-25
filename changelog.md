@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-09-25 — Court subscription screen, recording offline payments, ledger and confirmation email
+
+**Tag:** Web · NON-BREAKING for request shapes. Additive fields and new endpoints, plus two behaviour changes flagged below.
+
+**Court side (the Subscription screen)**
+- `GET /court/subscription-plans?view=cards` — plans grouped into one card per plan family, with a price per billing cycle and `offered: false` ("Not offered") for a missing cycle. Each offered cycle carries the `plan_id` to send to checkout. Without `view` the flat list is unchanged.
+- `GET /court/subscription/payments` — the court's own payment history, paginated, newest first: plan and cycle, date, method (`method_label` is words such as "Paystack · card" or "Manual · recorded by Devon"), amount and the period end ("through"). Confirmed subscription payments only.
+- `POST /court/subscription/verify` — a failed verify now returns `data.code`: `NO_PAYMENT_FOUND`, `PAYMENT_PENDING`, `PAYMENT_LINK_EXPIRED`, `PAYMENT_DECLINED`, `AMOUNT_MISMATCH` or `VERIFICATION_UNAVAILABLE`, with a message fit to show the court. A success now includes `already_confirmed` (true for a reload or a second caller).
+- `GET /court/subscription` — new fields: `billing_cycle`, `start_date`, `days_left`, `days_overdue`, `last_payment_method`, `last_payment_label`, `last_paid_at`, `reminder_sent_at`.
+- **Plan family and description.** Plans take an optional `family` and `description` (create, edit and duplicate). Plans that share a family appear as one card. Two published plans cannot share a family and billing cycle.
+
+**Platform Admin side**
+- `POST /platform/court-subscriptions/{court_id}?action=record-payment` — record a payment a court made outside the platform, including one from before it joined JudicAI. Body: `plan_id` (required), optional `amount`, `paid_at`, `period_start`, `period_end`, `reference`, `reason`. It creates a paid, manual invoice and audit entry. If the period runs past the court's current one, the subscription starts or extends. A payment whose period has already ended is history only, and for a court with no subscription it creates none (a subscription that is already lapsed would only get the court suspended).
+- `GET /platform/subscription-ledger` — everything that has happened to courts' subscriptions and billing, newest first: payments, renewals, failures, grace, suspensions, overrides, reminders, invoice actions. Filters: `court_id`, `action`, `search`, `from`, `to`, `page`, `size`.
+- Confirmed payments now write a "Payment Recorded (Online)" or "Payment Recorded (Manual)" line to the audit trail, with the plan, cycle, amount, method and period end.
+
+**Email.** After a successful Paystack payment (card, transfer or automatic charge), every active Judge, Registrar and Legal Aide of the court receives a payment confirmation in the approved HTML style. It is sent once, in the background, and a failure never affects the payment. A payment an admin records by hand is not announced. The email shows VAT and Paystack-fee rows only when those amounts are recorded; today they are not, so it shows a single "Amount paid". Renewal reminders now link with `?plan_id=…&cycle=…`.
+
+**Behaviour changes**
+- **Verify is now limited to the caller's own court.** Before, a user could verify another court's payment reference and see that court's subscription. Another court's reference now gets `NO_PAYMENT_FOUND`.
+- **Bin.** A suspended court can no longer restore or permanently delete items from the bin.
+
+**Flowchart:** new `flow/07-court-subscription-screen.html`. Frontend guide: `frontend/court-subscription-screen-api.md`.
+
+See `openapi.yaml` (`Court Subscription Billing` tag).
+
 ## 2026-09-25 — Paystack payments are confirmed by verifying, not by webhook
 
 **Tag:** Web · **BREAKING** for one endpoint: `POST /public/court-billing/paystack/webhook` is removed. If you registered that URL in the Paystack dashboard, delete it: nothing calls it any more. Everything else keeps its shape.

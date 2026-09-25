@@ -42,6 +42,10 @@ flowchart TD
   r1["Every court, subscribed or not:&lt;br/&gt;plan, start date, end date, status,&lt;br/&gt;renewal mode, saved card&lt;br/&gt;(status NONE = never subscribed)"]
   r2["The court's current subscription,&lt;br/&gt;plus every paid period:&lt;br/&gt;plan, amount, paid via, paid on,&lt;br/&gt;period start and end"]
   r3["Every try to pay, newest first:&lt;br/&gt;checkout or automatic, paid / pending / overdue,&lt;br/&gt;with totals for the whole history"]
+  pr["&lt;b&gt;Record an offline payment&lt;/b&gt;&lt;br/&gt;POST /platform/court-subscriptions/{court_id}?action=record-payment&lt;br/&gt;plan_id; optional amount, paid_at, period_start, period_end,&lt;br/&gt;reference, reason"]
+  pr1["Paid invoice, method 'Manual', appears in the court's history&lt;br/&gt;runs past the current period: subscription starts or extends&lt;br/&gt;an older period: history only, subscription untouched"]
+  pl["&lt;b&gt;See everything that happened&lt;/b&gt;&lt;br/&gt;GET /platform/subscription-ledger&lt;br/&gt;court_id, action, search, from, to, page, size"]
+  pl1["Every payment, renewal, failure, grace, suspension,&lt;br/&gt;override and reminder, with the court and who did it"]
   pe1["400: status must be ACTIVE, GRACE,&lt;br/&gt;SUSPENDED or NONE"]
   pe2["400: court not found"]
 
@@ -81,6 +85,11 @@ flowchart TD
   p3 -.->|"no such court"| pe2
   r3 -.->|"an attempt's invoice can be acted on below"| sOpen
 
+  pr --> pr1
+  pr1 -.-> r2
+  p1 -.-> pl
+  pl --> pl1
+
   o1 --> sOpen
   o2 --> sOpen
   sOpen --> c1
@@ -113,9 +122,9 @@ flowchart TD
   classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
   classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
   classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
-  class p1,p2,p3,o2,a1,a2,a3 admin
+  class p1,p2,p3,pr,pl,o2,a1,a2,a3 admin
   class c1,c2 court
-  class r1,r2,r3,o1,b2,b3,b4,b5,b6,b8 system
+  class r1,r2,r3,pr1,pl1,o1,b2,b3,b4,b5,b6,b8 system
   class sOpen,sPaid,sW state
   class pe1,pe2,e1,e2,e3,e4,e5,e6 err
 </pre>
@@ -124,7 +133,9 @@ flowchart TD
   <div class="notes">
     <h2>Things worth knowing</h2>
     <ul>
-      <li>The three subscription views are Platform Admin only and read-only. They change nothing.</li>
+      <li>The three subscription views and the ledger are Platform Admin only and read-only. They change nothing.</li>
+      <li><b>Recording an offline payment</b> is how an existing court's earlier payments and its current one get onto the platform. A payment whose period has already ended is history only. For a court with no subscription it creates none, because a subscription that is already lapsed would only get the court suspended for a payment made long ago. No email is sent for a recorded payment.</li>
+      <li>The ledger lists court-level events only. Plan and settings changes are not in it.</li>
       <li>The list shows every court, including ones that have never subscribed (status <code>NONE</code>). <code>start_date</code> and <code>end_date</code> are the currently paid period; <code>subscribed_since</code> is when the court first subscribed.</li>
       <li>The court detail lists confirmed payments only. A payment made before this release has no period dates or paid-on time, because they weren't recorded then.</li>
       <li>An attempt is any checkout or automatic charge, whatever happened. <b>Pending</b> means the court abandoned checkout, or a bank transfer hasn't landed yet. <b>Overdue</b> means an automatic charge failed. Ad-hoc invoices raised by an admin are not attempts.</li>

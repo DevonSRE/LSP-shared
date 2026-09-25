@@ -617,6 +617,21 @@ components:
           example: 15000000
         billing_cycle:
           $ref: "#/components/schemas/BillingCycle"
+        family:
+          type: string
+          maxLength: 60
+          description: >
+            Groups plans that differ only by billing cycle into one card on
+            the court's Subscription screen (for example "Basic" on the
+            quarterly, biannual and annual plans). Optional; empty means the
+            plan stands alone under its own name. Two published plans cannot
+            share a family and billing cycle.
+          example: "Basic"
+        description:
+          type: string
+          maxLength: 200
+          description: The card's one-line summary. Optional.
+          example: "Recording, transcripts and cause list"
         is_waiver:
           type: boolean
           default: false
@@ -645,6 +660,10 @@ components:
           description: In kobo.
         billing_cycle:
           $ref: "#/components/schemas/BillingCycle"
+        family:
+          type: string
+        description:
+          type: string
         status:
           $ref: "#/components/schemas/PlanStatus"
         is_waiver:
@@ -759,6 +778,34 @@ components:
         read_only:
           type: boolean
           description: True while creating, editing and deleting case records is paused (the status is SUSPENDED). Reading is never restricted.
+        billing_cycle:
+          $ref: "#/components/schemas/BillingCycle"
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start of the currently paid period; next_billing_date is its end.
+        days_left:
+          type: integer
+          description: Whole days left in the paid period. 0 once it has ended.
+        days_overdue:
+          type: integer
+          description: Whole days past the end of the paid period. 0 while it is still running.
+        last_payment_method:
+          $ref: "#/components/schemas/PaymentMethod"
+        last_payment_label:
+          type: string
+          description: The latest payment's method in words, for example "Paystack · card" or "Manual · recorded by Devon".
+          example: "Paystack · card"
+        last_paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        reminder_sent_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the renewal reminder for the current paid period was last sent. Null if none has been sent yet for this period.
 
     CourtSubscriptionOverview:
       type: object
@@ -1015,6 +1062,189 @@ components:
           maximum: 365
         reason:
           type: string
+
+    CourtSubscriptionPlanCycle:
+      type: object
+      description: One billing-cycle column on a plan card.
+      properties:
+        billing_cycle:
+          $ref: "#/components/schemas/BillingCycle"
+        offered:
+          type: boolean
+          description: False when this plan is not offered on this cycle ("Not offered"). Then plan_id and price are null.
+        plan_id:
+          type: integer
+          format: int64
+          nullable: true
+          description: The plan to pay for at checkout to take this plan on this cycle.
+        price:
+          type: integer
+          format: int64
+          nullable: true
+          description: In kobo.
+
+    CourtSubscriptionPlanCard:
+      type: object
+      description: >
+        What a court sees as one plan: a name, a one-line description and a
+        price for each billing cycle. Every card has the same columns: the
+        cycles that at least one published plan offers.
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        cycles:
+          type: array
+          items:
+            $ref: "#/components/schemas/CourtSubscriptionPlanCycle"
+
+    CourtSubscriptionVerifyResponse:
+      description: The court's subscription after a payment is verified.
+      allOf:
+        - $ref: "#/components/schemas/CourtSubscriptionResponse"
+        - type: object
+          properties:
+            already_confirmed:
+              type: boolean
+              description: >
+                True when this payment had already been applied (a reload, or
+                another caller a moment earlier), so nothing changed. Show
+                "This payment is already confirmed" rather than a fresh
+                "Payment confirmed".
+
+    PaymentVerifyError:
+      type: object
+      description: >
+        A 400 from POST /court/subscription/verify. data.code says why the
+        payment was not confirmed, so the screen can show the right state.
+      properties:
+        status:
+          type: boolean
+        message:
+          type: string
+          description: A sentence fit to show the court.
+        data:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - NO_PAYMENT_FOUND
+                - PAYMENT_PENDING
+                - PAYMENT_LINK_EXPIRED
+                - PAYMENT_DECLINED
+                - AMOUNT_MISMATCH
+                - VERIFICATION_UNAVAILABLE
+              description: >
+                NO_PAYMENT_FOUND: no payment for this reference (or not this
+                court's). PAYMENT_PENDING: not paid yet (a bank transfer may
+                still land): keep polling. PAYMENT_LINK_EXPIRED: the checkout
+                was started but never completed: start a new payment.
+                PAYMENT_DECLINED: declined, failed or reversed; nothing was
+                charged. AMOUNT_MISMATCH: Paystack confirmed a different
+                amount, so nothing was activated. VERIFICATION_UNAVAILABLE:
+                could not reach Paystack: try again in a moment.
+
+    CourtPaymentHistoryEntry:
+      type: object
+      description: One confirmed subscription payment in the court's payment history.
+      properties:
+        invoice_id:
+          type: integer
+          format: int64
+        invoice_ref:
+          type: string
+        plan_name:
+          type: string
+        billing_cycle:
+          $ref: "#/components/schemas/BillingCycle"
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+        method:
+          $ref: "#/components/schemas/PaymentMethod"
+        method_label:
+          type: string
+          description: The method in words, for example "Paystack · card" or "Manual · recorded by Devon".
+        amount:
+          type: integer
+          format: int64
+          description: In kobo.
+        period_start:
+          type: string
+          format: date-time
+          nullable: true
+        period_end:
+          type: string
+          format: date-time
+          nullable: true
+          description: The end of the period this payment covered ("through").
+
+    RecordPaymentRequest:
+      type: object
+      required: [plan_id]
+      description: >
+        Records a payment a court made outside the platform (a bank
+        transfer, cash, a cheque), including one from before the court came
+        onto JudicAI. Only plan_id is required. reason is required unless
+        the dunning settings turn that off.
+      properties:
+        plan_id:
+          type: integer
+          format: int64
+          description: A published or archived plan (not a draft).
+        amount:
+          type: integer
+          format: int64
+          description: In kobo. Defaults to the plan's price.
+        paid_at:
+          type: string
+          format: date-time
+          description: When the court paid. Defaults to now. Cannot be in the future.
+        period_start:
+          type: string
+          format: date-time
+          description: Start of the period the payment covers. Defaults to paid_at.
+        period_end:
+          type: string
+          format: date-time
+          description: End of the period ("through"). Defaults to one billing cycle after period_start. Must be after period_start.
+        reference:
+          type: string
+          maxLength: 120
+          description: A note for finance, such as the bank reference or receipt number.
+        reason:
+          type: string
+
+    SubscriptionLedgerEntry:
+      type: object
+      description: One line of the subscription ledger.
+      properties:
+        id:
+          type: integer
+          format: int64
+        at:
+          type: string
+          format: date-time
+        court_id:
+          type: integer
+          format: int64
+        court_name:
+          type: string
+        action:
+          type: string
+          example: "Payment Recorded (Manual)"
+        detail:
+          type: string
+          example: "Standard · Quarterly · ₦150,000.00 · Manual · recorded by Devon · paid through 25 Dec 2026"
+        actor:
+          type: string
+          description: A name and role, or "System" for the daily job and Paystack-confirmed payments.
+          example: "Ada Obi (platform admin)"
+        actor_user:
+          $ref: "#/components/schemas/UserSummary"
 
     # ── Court Invoices ────────────────────────────────────────────────────────
 
@@ -2080,15 +2310,34 @@ paths:
         users. Only PUBLISHED plans — what a court can actually select.
         For DRAFT/ARCHIVED visibility, a
         Platform Admin uses GET /platform/court-subscription-plans.
+
+
+        With `view=cards` the plans come back grouped the way the
+        Subscription screen shows them: one card per plan family, with a
+        price for each billing cycle and "not offered" for cycles that plan
+        doesn't have. Each offered cycle carries the plan_id to send to
+        checkout.
+      parameters:
+        - name: view
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [cards]
+          description: Omit for the flat list of plans. `cards` groups them into plan cards.
       responses:
         "200":
-          description: Plan list
+          description: Plan list (flat), or plan cards when view=cards
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/CourtSubscriptionPlanCard"
 
   /platform/court-subscription-plans:
     get:
@@ -2365,6 +2614,19 @@ paths:
         reminder.
 
 
+        `action=record-payment` records a payment the court made outside the
+        platform (body: RecordPaymentRequest). It creates a paid invoice with
+        the plan, amount and dates given, marked as a manual payment, and
+        writes it to the audit trail. If the period it covers runs past the
+        court's current paid period, the subscription starts or extends to
+        match (and a suspended court is restored, unless auto-reactivation is
+        off). A payment whose period has already ended is history only: for a
+        court with no subscription it creates none (a subscription that is
+        already lapsed would only get the court suspended for a payment made
+        long ago). Record the oldest payments first or last: the result is the
+        same. No email is sent.
+
+
         There is no separate action to waive a cycle's fee: use
         `POST /platform/court-invoices/{id}/waive` on the court's open
         invoice, which you can find with the attempts endpoint.
@@ -2380,13 +2642,15 @@ paths:
           required: true
           schema:
             type: string
-            enum: [set-status, extend, remind]
+            enum: [set-status, extend, remind, record-payment]
       requestBody:
         required: false
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SubscriptionOverrideRequest"
+              oneOf:
+                - $ref: "#/components/schemas/SubscriptionOverrideRequest"
+                - $ref: "#/components/schemas/RecordPaymentRequest"
       responses:
         "200":
           description: The court's subscription after the override
@@ -2395,7 +2659,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/CourtSubscriptionOverview"
         "400":
-          description: Missing or unknown action, reason required but missing, invalid status or days, the court has no subscription, or (remind) the court has no staff with an email
+          description: >
+            Missing or unknown action, reason required but missing, invalid
+            status or days, the court has no subscription (set-status,
+            extend, remind), no staff with an email (remind), or an invalid
+            payment (record-payment: unknown plan or court, a draft plan,
+            paid_at in the future, period_end not after period_start)
           content:
             application/json:
               schema:
@@ -2437,6 +2706,76 @@ paths:
                 $ref: "#/components/schemas/CourtSubscriptionAttemptsResponse"
         "400":
           description: Court not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /platform/subscription-ledger:
+    get:
+      tags: [Court Subscription Billing]
+      summary: Everything that has happened to courts' subscriptions
+      description: >
+        Platform Admin only. The platform-wide log of court-level billing
+        events, newest first: every payment (online or recorded by hand),
+        subscription started and renewed, failed charges, grace started,
+        suspensions, admin overrides, reminders and invoice actions, with the
+        court, a detail line and who did it ("System" for the daily job and
+        Paystack-confirmed payments). Plan-level and settings changes are not
+        included. Read-only.
+      parameters:
+        - name: court_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: action
+          in: query
+          schema:
+            type: string
+          description: An exact action, for example `Grace Started` or `Payment Recorded (Manual)`. An unknown action is a 400.
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Matches the detail line or the court's name.
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: First day to include (YYYY-MM-DD).
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Last day to include (YYYY-MM-DD), the whole day.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated ledger
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResult"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/SubscriptionLedgerEntry"
+        "400":
+          description: Unknown action filter or a date that is not YYYY-MM-DD
           content:
             application/json:
               schema:
@@ -2506,6 +2845,42 @@ paths:
               schema:
                 $ref: "#/components/schemas/CourtSubscriptionResponse"
 
+  /court/subscription/payments:
+    get:
+      tags: [Court Subscription Billing]
+      summary: The court's own payment history
+      description: >
+        Accessible to Judge, Legal Aide and Registrar. Scoped to the
+        caller's own court. Confirmed subscription payments only, newest
+        first: not pending or abandoned attempts, and not ad-hoc invoices.
+        Includes payments an admin recorded for the court (method "Manual ·
+        recorded by Devon"), including ones from before the court came onto
+        JudicAI.
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated payment history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResult"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/CourtPaymentHistoryEntry"
+
   /court/subscription/checkout:
     post:
       tags: [Court Subscription Billing]
@@ -2568,15 +2943,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CourtSubscriptionResponse"
+                $ref: "#/components/schemas/CourtSubscriptionVerifyResponse"
         "400":
           description: >
-            No payment found for this reference, payment not completed,
-            or amount mismatch
+            The payment was not confirmed. data.code says why (see
+            PaymentVerifyError). Only a payment made by the caller's own
+            court can be verified; another court's reference gets
+            NO_PAYMENT_FOUND.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GenericResponse"
+                $ref: "#/components/schemas/PaymentVerifyError"
 
   /court/subscription/renewal-mode:
     post:

@@ -23,7 +23,6 @@
     <span><i class="dot paystack"></i>Paystack</span>
     <span><i class="dot state"></i>Result state</span>
     <span><i class="dot err"></i>Rejected</span>
-    <span><i class="dot todo"></i>Not built yet</span>
   </div>
 
   <div class="zoom" aria-label="Zoom">
@@ -48,7 +47,7 @@ flowchart TD
   b1["Plan found and selectable?"]
   b2["Create PENDING invoice&lt;br/&gt;(kept even if abandoned)"]
   b3["Ask Paystack to initialise&lt;br/&gt;amount = plan price, in kobo"]
-  b4["Invoice already PAID?"]
+  b4["Invoice already PAID?&lt;br/&gt;(answer: already_confirmed: true)"]
   b5{"Paystack says success?"}
   b6{"Amount equals invoice amount?"}
   b7["Invoice → PAID&lt;br/&gt;paid_via from the Paystack channel:&lt;br/&gt;PAYSTACK_CARD / PAYSTACK_TRANSFER / PAYSTACK_OTHER"]
@@ -58,9 +57,9 @@ flowchart TD
   b12["&lt;b&gt;Email the court's staff&lt;/b&gt;&lt;br/&gt;every Judge, Legal Aide and Registrar&lt;br/&gt;of the court gets a payment confirmation&lt;br/&gt;(HTML, sent by the backend; no endpoint)"]
   b11["Save reusable card if Paystack returned one&lt;br/&gt;(has_saved_card = true)"]
   e1["400: plan not found / not available"]
-  e2["400: payment not completed"]
-  e3["400: amount does not match"]
-  e4["400: no payment for this reference"]
+  e2["400 PAYMENT_DECLINED / PAYMENT_PENDING /&lt;br/&gt;PAYMENT_LINK_EXPIRED: not confirmed"]
+  e3["400 AMOUNT_MISMATCH"]
+  e4["400 NO_PAYMENT_FOUND"]
 
   p1["POST /transaction/initialize&lt;br/&gt;returns authorization_url"]
   p2["Hosted checkout page&lt;br/&gt;(external — no JudicAI endpoint)"]
@@ -103,11 +102,9 @@ flowchart TD
   classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
   classDef paystack fill:#e5d9ff,stroke:#6b4cc4,color:#241452
   classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
-  classDef todo fill:#ffffff,stroke:#c98a10,stroke-dasharray:5 4,color:#3d2a00
   classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
   class c1,c2,c3,c4,c5,c6,c7 court
-  class b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11 system
-  class b12 todo
+  class b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11,b12 system
   class k9 system
   class p1,p2,p3 paystack
   class r1,r2 state
@@ -122,8 +119,8 @@ flowchart TD
       <li>A court can pay by card or by bank transfer. A transfer often lands after the court has left the page. There is no webhook: while a transfer is pending, the page should keep calling verify (every few seconds at first, then every 30 seconds), and an hourly reconcile job confirms it even if the court has gone. The invoice's <code>paid_via</code> records which way it was paid.</li>
       <li>Only a card is saved. A court that pays by transfer has no saved card, so it can't switch on auto-renew and pays each cycle through this flow.</li>
       <li>Renewing early adds a cycle on top of the existing end date, so no paid time is lost.</li>
-      <li>The dashed <b>email</b> box is designed but not built. After a successful checkout, every Judge, Legal Aide and Registrar of the court is emailed a payment confirmation. It is plain HTML sent by the backend, not a Mailjet template. The draft is <code>email/subscription-payment-confirmation.html</code>.</li>
-      <li>The receipt (step 9) is covered by the <a href="04-platform-subscriptions.html">invoices</a> flow. That endpoint returns the paid invoice's details as JSON; there is no PDF download yet.</li>
+      <li>After a successful Paystack payment, every active Judge, Legal Aide and Registrar of the court is emailed a payment confirmation (plain HTML in the approved platform style, not a Mailjet template). It is sent once, and a sending failure never affects the payment. The sample design is <code>email/subscription-payment-confirmation.html</code>.</li>
+      <li>The receipt (step 9) is covered by the <a href="04-platform-subscriptions.html">invoices</a> flow, and the court's <a href="07-court-subscription-screen.html">payment history</a> lists every confirmed payment. That endpoint returns the paid invoice's details as JSON; there is no PDF download yet.</li>
       <li>Every successful payment quietly stores a reusable card when Paystack provides one. That's what later lets the court switch on auto-renew — see the <a href="03-recurring.html">recurring billing</a> flow.</li>
       <li>A non-published plan can only be checked out by a court that's already on that exact plan (renewal). See the <a href="01-platform-admin-plans-workflow.html">plans workflow</a>.</li>
     </ul>

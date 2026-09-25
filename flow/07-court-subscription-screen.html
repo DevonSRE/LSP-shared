@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Court Subscription Screen Flow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Court subscription screen</div>
+  <h1>Court subscription screen — plans, paying, history</h1>
+  <p class="sub">What a court sees on its Subscription screen and which endpoint each part calls: the status card and banner, the plan cards, paying and every way the payment can end, the payment history, and the emails a court gets. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
+  <div class="audience">
+    <span class="label">Used by</span> <span class="aud court">Court Admin</span><span class="aud-role">Judge, Legal Aide or Registrar of the court</span>
+  </div>
+
+
+  <div class="legend">
+    <span><i class="dot court"></i>Court Admin</span>
+    <span><i class="dot system"></i>JudicAI backend</span>
+    <span><i class="dot paystack"></i>Paystack</span>
+    <span><i class="dot state"></i>Result</span>
+    <span><i class="dot err"></i>Not confirmed</span>
+  </div>
+
+  <div class="zoom" aria-label="Zoom">
+    <button id="zfit" type="button">Fit</button>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="level" id="zlevel">Fit</span>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="z100" type="button">100%</button>
+  </div>
+
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TD
+  a1["&lt;b&gt;Open the screen&lt;/b&gt;&lt;br/&gt;GET /court/subscription&lt;br/&gt;plan, cycle, paid through, days left or overdue,&lt;br/&gt;paid by, reminder sent, grace, read_only"]
+  a2["&lt;b&gt;Banner and buttons&lt;/b&gt;&lt;br/&gt;read_only true: red banner, Create and Edit disabled&lt;br/&gt;GRACE: warning banner with grace_ends_at"]
+  a3["&lt;b&gt;Browse plans&lt;/b&gt;&lt;br/&gt;GET /court/subscription-plans?view=cards&lt;br/&gt;one card per plan, a price per cycle,&lt;br/&gt;'not offered' where a cycle is missing"]
+  a4["&lt;b&gt;Pay now&lt;/b&gt;&lt;br/&gt;POST /court/subscription/checkout&lt;br/&gt;body: plan_id of the chosen card and cycle"]
+  p1["Hosted checkout page&lt;br/&gt;(Paystack, no JudicAI endpoint)"]
+  a5["&lt;b&gt;Confirm the payment&lt;/b&gt;&lt;br/&gt;POST /court/subscription/verify&lt;br/&gt;body: reference"]
+
+  ok(["Payment confirmed&lt;br/&gt;plan, amount paid, access until"])
+  al(["Already confirmed&lt;br/&gt;already_confirmed: true"])
+  e1["400 PAYMENT_PENDING&lt;br/&gt;a bank transfer has not landed yet"]
+  e2["400 PAYMENT_LINK_EXPIRED&lt;br/&gt;checkout was never completed"]
+  e3["400 PAYMENT_DECLINED&lt;br/&gt;nothing was charged"]
+  e4["400 AMOUNT_MISMATCH&lt;br/&gt;nothing was activated"]
+  e5["400 NO_PAYMENT_FOUND&lt;br/&gt;unknown, or another court's reference"]
+  e6["400 VERIFICATION_UNAVAILABLE&lt;br/&gt;Paystack could not be reached"]
+
+  r1["Keep calling verify:&lt;br/&gt;every few seconds, then about every 30 seconds"]
+  r2["Start a new payment"]
+
+  h1["&lt;b&gt;Payment history&lt;/b&gt;&lt;br/&gt;GET /court/subscription/payments?page=&amp;size=&lt;br/&gt;paid only: plan and cycle, date and method,&lt;br/&gt;amount, through"]
+
+  m1["&lt;b&gt;Confirmation email&lt;/b&gt;&lt;br/&gt;every Judge, Registrar and Legal Aide of the court&lt;br/&gt;Paystack payments only, sent once"]
+  m2["&lt;b&gt;Renewal reminders&lt;/b&gt;&lt;br/&gt;14 days and 3 days before the end&lt;br/&gt;Renew button: /subscription?plan_id=…&amp;cycle=…"]
+  k1["Reconcile job, hourly&lt;br/&gt;confirms a transfer the court stopped waiting for"]
+
+  a1 --> a2
+  a1 --> a3
+  a3 --> a4 --> p1 --> a5
+  a5 --> ok
+  a5 --> al
+  a5 --> e1
+  a5 --> e2
+  a5 --> e3
+  a5 --> e4
+  a5 --> e5
+  a5 --> e6
+  e1 -.-> r1
+  r1 -.-> a5
+  e6 -.-> r1
+  e2 -.-> r2
+  e3 -.-> r2
+  r2 -.-> a4
+  e1 -.->|"court leaves"| k1
+  k1 -->|"Paystack says paid"| ok
+  ok --> m1
+  ok --> h1
+  al --> h1
+  a1 -.-> h1
+  m2 -.->|"opens the screen with the plan and cycle selected"| a3
+
+  classDef court fill:#d3f2df,stroke:#2f8a55,color:#0e2e1d
+  classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
+  classDef paystack fill:#e5d9ff,stroke:#6b4cc4,color:#241452
+  classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
+  classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
+  class a1,a2,a3,a4,a5,h1,r1,r2 court
+  class m1,m2,k1 system
+  class p1 paystack
+  class ok,al state
+  class e1,e2,e3,e4,e5,e6 err
+</pre>
+  </div>
+
+  <div class="notes">
+    <h2>Things worth knowing</h2>
+    <ul>
+      <li>Every button on the page maps to the codes above. Match on <code>data.code</code>, not on the message.</li>
+      <li>Plan cards come from <code>?view=cards</code>. A card is one plan family; each cycle that is offered carries the <code>plan_id</code> to send to checkout. The plain list without <code>view</code> is unchanged.</li>
+      <li>There is no webhook. While a bank transfer is pending, keep calling verify. It is safe to call repeatedly, and a payment is never applied twice. The server also confirms it within the hour if the court stops.</li>
+      <li>The history shows confirmed payments only, including any an admin recorded for the court ("Manual · recorded by Devon"), dated back to before the court joined JudicAI.</li>
+      <li>The confirmation email goes out for Paystack payments (card, transfer, automatic). A payment an admin records by hand is not announced. It shows no VAT or Paystack-fee rows until those amounts are recorded.</li>
+      <li>Suspended courts can still read everything and see this screen. Paying restores them at once. See <a href="06-dunning-suspension.html">dunning and suspension</a>.</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 220 }
+  });
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  const svg = document.querySelector('.mermaid svg');
+  const natural = svg.viewBox.baseVal.width;
+  const level = document.getElementById('zlevel');
+  let z = null; // null = fit to page width
+  const current = () => svg.getBoundingClientRect().width / natural;
+  function apply() {
+    if (z === null) { svg.style.width = '100%'; svg.style.maxWidth = natural + 'px'; level.textContent = 'Fit'; }
+    else { svg.style.width = natural * z + 'px'; svg.style.maxWidth = 'none'; level.textContent = Math.round(z * 100) + '%'; }
+  }
+  document.getElementById('zfit').onclick = () => { z = null; apply(); };
+  document.getElementById('z100').onclick = () => { z = 1; apply(); };
+  document.getElementById('zin').onclick = () => { z = Math.min(2.5, (z ?? current()) * 1.25); apply(); };
+  document.getElementById('zout').onclick = () => { z = Math.max(0.2, (z ?? current()) * 0.8); apply(); };
+  apply();
+</script>
+</body>
+</html>
