@@ -23,7 +23,6 @@
     <span><i class="dot paystack"></i>Paystack</span>
     <span><i class="dot system"></i>System / cron</span>
     <span><i class="dot state"></i>State</span>
-    <span><i class="dot todo"></i>Not built yet</span>
   </div>
 
   <div class="zoom" aria-label="Zoom">
@@ -49,7 +48,7 @@ flowchart TD
   p2["Paystack: charge saved card"]
   p3["&lt;b&gt;Paystack webhook&lt;/b&gt;&lt;br/&gt;POST /public/court-billing/paystack/webhook"]
   sG(["GRACE"])
-  sS(["SUSPENDED + lockout"])
+  sS(["SUSPENDED + creating and editing paused"])
   k1["&lt;b&gt;06:30 waiver cap cron&lt;/b&gt;&lt;br/&gt;no endpoint"]
   ia["&lt;b&gt;Admin: invoices&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices&lt;br/&gt;POST …/{id}/remind | mark-paid | waive"]
   ic["&lt;b&gt;Court: invoices&lt;/b&gt;&lt;br/&gt;GET /court/invoices&lt;br/&gt;GET …/{id}/receipt"]
@@ -62,7 +61,7 @@ flowchart TD
   p3 -->|"success"| sA
   p3 -->|"failed"| sG
   sG -->|"retry daily, max 3"| k2
-  sG -.->|"grace expires"| sS
+  sG -->|"grace expires"| sS
   k1 -.->|"expired waiver reverts plan"| a1
   c2 --> ia
   k2 --> ia
@@ -76,13 +75,12 @@ flowchart TD
   classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
   classDef paystack fill:#e5d9ff,stroke:#6b4cc4,color:#241452
   classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
-  classDef todo fill:#ffffff,stroke:#c98a10,stroke-dasharray:5 4,color:#3d2a00
   class a1,ia,pw admin
   class c1,c2,c3,c4,c5,ic,pc court
   class p1,p2,p3 paystack
   class k1,k2 system
   class sA,sG state
-  class sS todo
+  class sS state
 </pre>
   </div>
 
@@ -93,6 +91,7 @@ flowchart TD
       <li><a href="02-court-checkout.html">Subscription checkout</a> — paying once per cycle</li>
       <li><a href="03-recurring.html">Recurring billing</a> — auto-renew, webhook, retries, grace</li>
       <li><a href="04-platform-subscriptions.html">Platform subscriptions</a> — every court's subscription, payments and attempts; invoices: raise, remind, mark paid, waive, receipts</li>
+      <li><a href="06-dunning-suspension.html">Dunning &amp; suspension</a> — reminder, grace and retry rules; the daily job; what a suspended court can and can't do</li>
       <li><a href="05-payment-config.html">Court payment configuration</a> — prices and payout account</li>
     </ul>
   </div>

@@ -588,10 +588,16 @@ components:
       type: string
       enum: [ACTIVE, GRACE, SUSPENDED]
       description: >
-        SUSPENDED is not yet reachable — automatic suspension after grace
-        expires is not built (Dunning settings / Workflow 5). GRACE is
-        entered automatically only for AUTO subscriptions after a failed
-        recurring charge.
+        ACTIVE is paid up. GRACE is a warning window: the paid period lapsed
+        with no payment (or an automatic charge failed), and nothing is
+        restricted yet. SUSPENDED follows when the grace period runs out (if
+        suspension is switched on in the dunning settings): creating,
+        editing and deleting cases, casefiles, evidence, schedules, comments
+        and uploads is paused, and those writes return 403 with
+        `data.code = SUBSCRIPTION_SUSPENDED`. Reading is never restricted. A
+        confirmed payment returns the court to ACTIVE straight away (unless
+        auto-reactivation is switched off). A court that has never subscribed
+        has no status and is not restricted.
 
     CourtSubscriptionPlanRequest:
       type: object
@@ -740,6 +746,19 @@ components:
         retry_count:
           type: integer
           description: Consecutive failed recurring-charge attempts since the subscription last entered GRACE. Resets to 0 on any successful charge.
+        grace_started_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the court entered its grace period. Null unless the status is GRACE or SUSPENDED.
+        grace_ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the grace period runs out (grace_started_at plus the configured grace days). Null unless the status is GRACE or SUSPENDED.
+        read_only:
+          type: boolean
+          description: True while creating, editing and deleting case records is paused (the status is SUSPENDED). Reading is never restricted.
 
     CourtSubscriptionOverview:
       type: object
@@ -913,6 +932,89 @@ components:
                   type: array
                   items:
                     $ref: "#/components/schemas/CourtSubscriptionAttempt"
+
+    DunningSettings:
+      type: object
+      description: The platform-wide ruleset for renewal reminders, grace, retries and suspension.
+      properties:
+        reminder_days:
+          type: integer
+          description: Days before the end of a paid period that the renewal reminder is emailed to the court's staff.
+        final_reminder_days:
+          type: integer
+          description: Days before the end that a final reminder is emailed. 0 means no final reminder.
+        grace_days:
+          type: integer
+          description: Days a court stays in GRACE after its period lapses (or a charge fails) before it can be suspended.
+        retry_attempts:
+          type: integer
+          description: Automatic charge attempts per lapsed period (AUTO subscriptions only).
+        suspend_on_grace_expiry:
+          type: boolean
+          description: Suspend a court when grace runs out. If false, a court stays in GRACE.
+        auto_reactivate_on_payment:
+          type: boolean
+          description: Return a SUSPENDED court to ACTIVE as soon as a payment is confirmed. If false, the payment is recorded but an admin must reactivate the court.
+        require_override_reason:
+          type: boolean
+          description: Require a written reason on every manual override.
+        is_default:
+          type: boolean
+          description: True until a Platform Admin saves the settings for the first time, meaning the built-in defaults are in effect.
+        updated_by:
+          $ref: "#/components/schemas/UserSummary"
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    DunningSettingsRequest:
+      type: object
+      required: [reminder_days, grace_days, retry_attempts]
+      description: >
+        Replaces the whole ruleset, so send every field. A switch that is
+        left out is saved as false.
+      properties:
+        reminder_days:
+          type: integer
+          minimum: 1
+          maximum: 90
+        final_reminder_days:
+          type: integer
+          minimum: 0
+          maximum: 90
+          description: Must be fewer days than reminder_days, or 0 for no final reminder.
+        grace_days:
+          type: integer
+          minimum: 0
+          maximum: 90
+        retry_attempts:
+          type: integer
+          minimum: 0
+          maximum: 10
+        suspend_on_grace_expiry:
+          type: boolean
+        auto_reactivate_on_payment:
+          type: boolean
+        require_override_reason:
+          type: boolean
+
+    SubscriptionOverrideRequest:
+      type: object
+      description: >
+        Body for a manual override. Which fields apply depends on the
+        action: `set-status` uses status, `extend` uses days, `remind` uses
+        neither. reason is required unless the dunning settings turn that off.
+      properties:
+        status:
+          type: string
+          enum: [ACTIVE, GRACE, SUSPENDED]
+        days:
+          type: integer
+          minimum: 1
+          maximum: 365
+        reason:
+          type: string
 
     # ── Court Invoices ────────────────────────────────────────────────────────
 
@@ -2238,6 +2340,67 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
+    post:
+      tags: [Court Subscription Billing]
+      summary: Manually override one court's subscription
+      description: >
+        Platform Admin only. Every override is written to the court's audit
+        trail with the admin and the reason.
+
+
+        `action=set-status` forces the status to ACTIVE, GRACE or SUSPENDED
+        (body: `status`). Reactivating clears the grace period and the
+        retry count. Forcing SUSPENDED pauses creating and editing for that
+        court straight away.
+
+
+        `action=extend` pushes the end of the paid period back by `days`
+        (1 to 365) without a payment. It counts from today if the period has
+        already ended. It does not change the status; use `set-status` for
+        that.
+
+
+        `action=remind` emails the court's Judges, Registrars and Legal
+        Aides a renewal reminder now. It does not use up the scheduled
+        reminder.
+
+
+        There is no separate action to waive a cycle's fee: use
+        `POST /platform/court-invoices/{id}/waive` on the court's open
+        invoice, which you can find with the attempts endpoint.
+      parameters:
+        - name: court_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [set-status, extend, remind]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriptionOverrideRequest"
+      responses:
+        "200":
+          description: The court's subscription after the override
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionOverview"
+        "400":
+          description: Missing or unknown action, reason required but missing, invalid status or days, the court has no subscription, or (remind) the court has no staff with an email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
   /platform/court-subscriptions/{court_id}/attempts:
     get:
       tags: [Court Subscription Billing]
@@ -2274,6 +2437,53 @@ paths:
                 $ref: "#/components/schemas/CourtSubscriptionAttemptsResponse"
         "400":
           description: Court not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /platform/dunning-settings:
+    get:
+      tags: [Court Subscription Billing]
+      summary: Get the dunning settings
+      description: >
+        Platform Admin only. The platform-wide rules for renewal reminders,
+        grace, automatic-charge retries, suspension and reactivation. Until
+        they are saved for the first time the built-in defaults apply and
+        `is_default` is true (reminder 14 days, final reminder 3 days, grace
+        3 days, 3 retries, suspend on, auto-reactivate on, reason required
+        on).
+      responses:
+        "200":
+          description: The current settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DunningSettings"
+    put:
+      tags: [Court Subscription Billing]
+      summary: Save the dunning settings
+      description: >
+        Platform Admin only. Replaces the whole ruleset. Changes apply from
+        the next daily run and are written to the audit trail. A daily job
+        (07:30) moves a court whose paid period has ended to GRACE, moves a
+        court whose grace has run out to SUSPENDED (if suspension is on),
+        and sends the renewal reminders.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DunningSettingsRequest"
+      responses:
+        "200":
+          description: The saved settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DunningSettings"
+        "400":
+          description: Validation error
           content:
             application/json:
               schema:

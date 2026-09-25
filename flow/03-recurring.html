@@ -24,7 +24,6 @@
     <span><i class="dot paystack"></i>Paystack</span>
     <span><i class="dot state"></i>Subscription state</span>
     <span><i class="dot err"></i>Rejected</span>
-    <span><i class="dot todo"></i>Not built yet</span>
   </div>
 
   <div class="zoom" aria-label="Zoom">
@@ -65,7 +64,7 @@ flowchart TD
 
   s1(["ACTIVE"])
   s2(["GRACE"])
-  s3(["SUSPENDED + case lockout"])
+  s3(["SUSPENDED + creating and editing paused"])
 
   a1["&lt;b&gt;Manual rescue&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices/{id}/mark-paid"]
 
@@ -105,14 +104,13 @@ flowchart TD
   classDef paystack fill:#e5d9ff,stroke:#6b4cc4,color:#241452
   classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
   classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
-  classDef todo fill:#ffffff,stroke:#c98a10,stroke-dasharray:5 4,color:#3d2a00
   class a1 admin
   class c1,c2,c3,c4 court
   class k1,k2,k3,k4,w1,w2,w3,w4,w5,w6,w7,n1,n2 system
   class p1,p2 paystack
   class s1,s2 state
   class e1,e2,e3 err
-  class s3 todo
+  class s3 state
 </pre>
   </div>
 
@@ -122,8 +120,8 @@ flowchart TD
       <li>A court that only ever pays by bank transfer has no saved card, so it can't use auto-renew. It stays on manual renewal and pays each cycle through <a href="02-court-checkout.html">checkout</a>.</li>
       <li>Turning on auto-renew never charges the court. It only reuses a card saved from an earlier payment, so a court has to pay once by hand first.</li>
       <li>The immediate reply from Paystack's charge call is deliberately ignored. Only the signed webhook can mark the invoice paid, so one payment can never be applied by two code paths.</li>
-      <li>Retries stop after 3 failed attempts and the subscription stays in <code>GRACE</code>. That limit is a fixed value for now.</li>
-      <li>The dashed <b>SUSPENDED</b> box is not built yet. Nothing currently moves a subscription out of <code>GRACE</code> automatically, and nothing restricts case access. That's the Dunning work.</li>
+      <li>Retries stop once the configured attempts are used (default 3) and the subscription stays in <code>GRACE</code> until grace runs out.</li>
+      <li>What happens after a failed charge is covered by the <a href="06-dunning-suspension.html">dunning and suspension</a> flow: grace, retries (the limit is set by the admin, default 3), and suspension.</li>
       <li>A network failure calling Paystack doesn't count as a failed attempt; the subscription is simply picked up again on the next daily run.</li>
     </ul>
   </div>

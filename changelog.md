@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-09-25 — Dunning settings, grace and suspension (Workflow 5)
+
+**Tag:** Web · NON-BREAKING for request and response shapes (new endpoints and additive fields). **Behaviour change:** a court whose subscription becomes `SUSPENDED` now gets `403` on creating, editing and deleting case records (see below). Reading is never restricted, and courts with no subscription are unaffected.
+
+**New endpoints (Platform Admin only)**
+- `GET /platform/dunning-settings` and `PUT /platform/dunning-settings` — the platform-wide rules: `reminder_days`, `final_reminder_days`, `grace_days`, `retry_attempts`, `suspend_on_grace_expiry`, `auto_reactivate_on_payment`, `require_override_reason`. `PUT` replaces the whole set. Until first saved the defaults apply (14, 3, 3, 3, all three switches on) and `is_default` is `true`.
+- `POST /platform/court-subscriptions/{court_id}?action=set-status | extend | remind` — manual overrides on one court, each audit-logged with the admin and a reason. `set-status` forces `ACTIVE`, `GRACE` or `SUSPENDED`; `extend` pushes the paid period out by `days` (1 to 365); `remind` emails the court's staff a renewal reminder now.
+
+**Subscription lifecycle** — a daily job (07:30) now drives the status. Before this, a manual subscription stayed `ACTIVE` forever after its end date and `SUSPENDED` could not happen.
+- A paid period that ends with no payment moves the court to `GRACE`. An automatic subscription is given a day for its charge to land first.
+- `GRACE` is a warning window and restricts nothing. When `grace_days` run out, and `suspend_on_grace_expiry` is on, the court moves to `SUSPENDED`.
+- A confirmed payment returns the court to `ACTIVE` at once. If `auto_reactivate_on_payment` is off, the payment is still recorded and the period extended, but the court stays suspended until an admin sets it back.
+- The retry limit for automatic charges is now `retry_attempts` (it was a fixed 3).
+
+**Suspension: what is paused.** While `SUSPENDED`, `POST`, `PUT`, `PATCH` and `DELETE` on cases, casefiles, evidence, schedules, case comments and media uploads return `403` with `data.code = "SUBSCRIPTION_SUSPENDED"`. `GET` requests, downloads, Platform Admins and courts that never subscribed are never blocked.
+
+**Renewal reminders.** The daily job emails every active Judge, Registrar and Legal Aide of a court `reminder_days` before its paid period ends, and again `final_reminder_days` before (`0` = no final reminder), once per paid period each. These are plain HTML emails in the approved platform style, not Mailjet templates. The button links to `COURT_BILLING_RENEW_URL` (default `https://judicai.devontech.io/subscription`) with `?plan_id=`.
+
+**New fields on `GET /court/subscription`:** `grace_started_at`, `grace_ends_at` and `read_only`. All three are additive.
+
+**New setting:** `COURT_BILLING_RENEW_URL` (optional).
+
+**Not included:** a global "pause all billing" switch (the Settings tab), and a separate override to waive a cycle's fee: use `POST /platform/court-invoices/{id}/waive`.
+
+**Flowchart:** new `flow/06-dunning-suspension.html`. Frontend guide: `frontend/subscription-suspension-api.md`.
+
+See `openapi.yaml` (`Court Subscription Billing` tag; `DunningSettings`, `SubscriptionOverrideRequest`, `SubscriptionStatus`).
+
 ## 2026-09-25 — Platform Admin subscription views
 
 **Tag:** Web · NON-BREAKING — three new read-only endpoints for Platform Admins, plus two additive fields. No existing contract changed.
@@ -148,8 +176,8 @@ New endpoints — no existing contract changed. This is the **Devon → Court** 
 - `POST /court/invoices/{id}/waive` — zero an invoice with a logged reason (Platform Admin only).
 
 **Known limitations, not oversights:**
-- Recurring billing (`AUTO`) has no admin-configurable retry/grace settings yet — a hardcoded retry limit is used until Dunning settings (Workflow 5) ship.
-- `SUSPENDED` status is not yet reachable — automatic suspension after grace expires isn't built.
+- ~~Recurring billing (`AUTO`) has no admin-configurable retry/grace settings yet~~ **Superseded 2026-09-25** — see Workflow 5 above.
+- ~~`SUSPENDED` status is not yet reachable — automatic suspension after grace expires isn't built.~~ **Superseded 2026-09-25** — see Workflow 5 above.
 - ~~Plan lifecycle (Draft/Publish/Archive/Duplicate) isn't built — `POST /court/subscription-plans` always creates a live, immediately-selectable plan.~~ **Superseded** — see the Workflow 4 entry above, same date.
 - Invoice reminders only reach a court that has paid at least once (recipient is captured from the last successful payment) — no broader court-staff lookup yet.
 - No receipt PDF generation — the receipt endpoint returns invoice details only.

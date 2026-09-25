@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dunning and Suspension Flow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Dunning &amp; suspension</div>
+  <h1>Dunning &amp; suspension — reminders, grace, and what a suspended court can do</h1>
+  <p class="sub">A daily job watches every subscription. It reminds courts before their paid period ends, gives a lapsed court a grace period, and, if the platform has suspension switched on, pauses creating and editing once grace runs out. Paying restores the court. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
+  <div class="audience">
+    <span class="label">Used by</span> <span class="aud admin">Platform Admin</span><span class="aud-role">sets the rules and can override any court</span> <span class="aud court">Court Admin</span><span class="aud-role">gets the reminders, sees the banner, is paused when suspended</span>
+  </div>
+  <div class="audience" style="margin-top:-6px">Court Admin means a Judge, Legal Aide or Registrar. </div>
+
+
+  <div class="legend">
+    <span><i class="dot admin"></i>Platform Admin</span>
+    <span><i class="dot court"></i>Court Admin</span>
+    <span><i class="dot system"></i>JudicAI backend</span>
+    <span><i class="dot state"></i>Subscription status</span>
+    <span><i class="dot err"></i>Refused</span>
+  </div>
+
+  <div class="zoom" aria-label="Zoom">
+    <button id="zfit" type="button">Fit</button>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="level" id="zlevel">Fit</span>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="z100" type="button">100%</button>
+  </div>
+
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TD
+  ad1["&lt;b&gt;Set the rules&lt;/b&gt;&lt;br/&gt;GET · PUT /platform/dunning-settings&lt;br/&gt;reminder days, grace days, retries,&lt;br/&gt;suspend on/off, auto-reactivate on/off"]
+  k1["&lt;b&gt;Daily job, 07:30&lt;/b&gt;&lt;br/&gt;no endpoint"]
+
+  sA(["ACTIVE"])
+  sG(["GRACE&lt;br/&gt;a warning window, nothing restricted"])
+  sS(["SUSPENDED&lt;br/&gt;creating and editing paused"])
+
+  b1["Paid period ends soon?"]
+  b2["Email the court's Judges, Registrars and Legal Aides&lt;br/&gt;first reminder N days out, final reminder M days out&lt;br/&gt;each sent once per paid period"]
+  b3["Paid period ended with no payment?"]
+  b4["Grace days elapsed and suspension on?"]
+  b5{"Auto-reactivate on?"}
+
+  c1["&lt;b&gt;See the banner&lt;/b&gt;&lt;br/&gt;GET /court/subscription&lt;br/&gt;status, grace_ends_at, read_only"]
+  c2["&lt;b&gt;Read anything&lt;/b&gt;&lt;br/&gt;GET on cases, casefiles, evidence,&lt;br/&gt;schedules, downloads"]
+  c3["&lt;b&gt;Create, edit or delete while SUSPENDED&lt;/b&gt;&lt;br/&gt;POST · PATCH · DELETE on cases, casefiles,&lt;br/&gt;evidence, schedules, comments, uploads"]
+  c5["&lt;b&gt;Create, edit or delete&lt;/b&gt;&lt;br/&gt;allowed while ACTIVE or in GRACE"]
+  c4["&lt;b&gt;Renew&lt;/b&gt;&lt;br/&gt;POST /court/subscription/checkout"]
+  e1["403 SUBSCRIPTION_SUSPENDED&lt;br/&gt;reading still works"]
+
+  ad2["&lt;b&gt;Set status&lt;/b&gt;&lt;br/&gt;POST /platform/court-subscriptions/{court_id}?action=set-status&lt;br/&gt;body: status, reason"]
+  ad3["&lt;b&gt;Extend the paid period&lt;/b&gt;&lt;br/&gt;POST …?action=extend&lt;br/&gt;body: days, reason"]
+  ad4["&lt;b&gt;Send a reminder now&lt;/b&gt;&lt;br/&gt;POST …?action=remind&lt;br/&gt;body: reason"]
+  ad5["&lt;b&gt;Record a payment&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices/{id}/mark-paid"]
+  e2["400: a reason is required"]
+
+  ad1 -.->|"read by the daily job"| k1
+  k1 --> b1
+  k1 --> b3
+  k1 --> b4
+  b1 -->|"yes, and ACTIVE"| b2
+  sA --> b1
+  b3 -->|"yes"| sG
+  sA --> b3
+  sG --> b4
+  b4 -->|"yes"| sS
+  sG -.->|"suspension off: stays here"| sG
+
+  sS --> c3
+  c3 --> e1
+  sS --> c2
+  sA --> c2
+  sG --> c2
+  sG --> c5
+  sA --> c5
+  c1 -.-> sS
+
+  sG -->|"court pays"| c4
+  sS -->|"court pays"| c4
+  c4 --> b5
+  ad5 --> b5
+  b5 -->|"yes: restored at once"| sA
+  b5 -->|"no: payment recorded, court stays suspended"| sS
+
+  ad2 -->|"any status, clears grace when ACTIVE"| sA
+  ad2 -.->|"needs a reason unless the rules say otherwise"| e2
+  ad3 -.->|"pushes the end date; status unchanged"| sA
+  ad4 -.-> b2
+
+  classDef admin fill:#cfe3ff,stroke:#3b6fb6,color:#10233f
+  classDef court fill:#d3f2df,stroke:#2f8a55,color:#0e2e1d
+  classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
+  classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
+  classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
+  class ad1,ad2,ad3,ad4,ad5 admin
+  class c1,c2,c3,c4,c5 court
+  class k1,b1,b2,b3,b4,b5 system
+  class sA,sG,sS state
+  class e1,e2 err
+</pre>
+  </div>
+
+  <div class="notes">
+    <h2>Things worth knowing</h2>
+    <ul>
+      <li>The rules are one platform-wide set. Until a Platform Admin saves them the defaults apply: first reminder 14 days out, final reminder 3 days out, 3 days of grace, 3 automatic retries, suspension on, auto-reactivate on, a reason required on every override.</li>
+      <li><b>Grace restricts nothing.</b> It is a warning window. Only <b>suspended</b> pauses creating, editing and deleting, and only on cases, casefiles, evidence, schedules, comments and uploads. Reading and downloading are never restricted.</li>
+      <li>A court that has never subscribed has no status and is never restricted. Platform Admins are never blocked.</li>
+      <li>Renewing early or late restores the court at once. If auto-reactivate is switched off, the payment is still recorded and the period extended, but the court stays suspended until an admin sets it back to active.</li>
+      <li>With suspension switched off, a court stays in grace however long it goes unpaid.</li>
+      <li>A manual subscription moves to grace the moment its period ends. An automatic one is given a day for its charge to land before it does.</li>
+      <li>Reminders go to every active Judge, Registrar and Legal Aide with an email, once per paid period for each of the two reminders. A reminder that could not be delivered is retried the next day. The email is honest about the pause: it only mentions grace and suspension when suspension is on.</li>
+      <li>To waive a cycle's fee, use the invoice waive in <a href="04-platform-subscriptions.html">Platform subscriptions</a>; find the invoice with the attempts view.</li>
+      <li>The court subscription design shows the read-only banner from the day a subscription expires. The approved rules here wait until grace runs out. Moving the line is a one-line change; it is not decided yet.</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 220 }
+  });
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  const svg = document.querySelector('.mermaid svg');
+  const natural = svg.viewBox.baseVal.width;
+  const level = document.getElementById('zlevel');
+  let z = null; // null = fit to page width
+  const current = () => svg.getBoundingClientRect().width / natural;
+  function apply() {
+    if (z === null) { svg.style.width = '100%'; svg.style.maxWidth = natural + 'px'; level.textContent = 'Fit'; }
+    else { svg.style.width = natural * z + 'px'; svg.style.maxWidth = 'none'; level.textContent = Math.round(z * 100) + '%'; }
+  }
+  document.getElementById('zfit').onclick = () => { z = null; apply(); };
+  document.getElementById('z100').onclick = () => { z = 1; apply(); };
+  document.getElementById('zin').onclick = () => { z = Math.min(2.5, (z ?? current()) * 1.25); apply(); };
+  document.getElementById('zout').onclick = () => { z = Math.max(0.2, (z ?? current()) * 0.8); apply(); };
+  apply();
+</script>
+</body>
+</html>
