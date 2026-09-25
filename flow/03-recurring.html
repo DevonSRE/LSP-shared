@@ -10,7 +10,7 @@
 <div class="wrap">
   <div class="crumb"><a href="index.html">Flowcharts</a> / Recurring billing</div>
   <h1>Recurring billing — auto-renewal, retries and grace</h1>
-  <p class="sub">A court switches on auto-renewal once, then a daily job charges its saved card. Paystack reports the outcome through a webhook, which is the only thing that can mark an automatic charge paid. Auto-renewal needs a saved card, so it only applies to courts that have paid by card. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
+  <p class="sub">A court switches on auto-renewal once, then a daily job charges its saved card. JudicAI asks Paystack what happened to each charge (there is no webhook), and an hourly job settles any that were still processing. Auto-renewal needs a saved card, so it only applies to courts that have paid by card. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
   <div class="audience">
     <span class="label">Used by</span> <span class="aud court">Court Admin</span><span class="aud-role">turns auto-renew on or off</span> <span class="aud admin">Platform Admin</span><span class="aud-role">can settle a failed charge by hand</span>
   </div>
@@ -43,23 +43,26 @@ flowchart TD
   c4["&lt;b&gt;Pay by hand at any time&lt;/b&gt;&lt;br/&gt;POST /court/subscription/checkout&lt;br/&gt;then POST /court/subscription/verify"]
 
   k1["&lt;b&gt;3. Billing cycle, 07:00&lt;/b&gt;&lt;br/&gt;cron, no endpoint&lt;br/&gt;AUTO, ACTIVE or GRACE,&lt;br/&gt;next_billing_date reached"]
-  k2{"retry_count below 3?"}
+  k2{"attempts used below the limit?&lt;br/&gt;(set by the admin, default 3)"}
   k3["Create PENDING invoice&lt;br/&gt;amount = current plan price"]
   k4["Skip — stays GRACE"]
 
-  p1["&lt;b&gt;4. Charge the saved card&lt;/b&gt;&lt;br/&gt;POST /transaction/charge_authorization&lt;br/&gt;(reply is ignored)"]
-  p2["&lt;b&gt;5. Webhook&lt;/b&gt;&lt;br/&gt;charge.success or charge.failed"]
+  p1["&lt;b&gt;4. Charge the saved card&lt;/b&gt;&lt;br/&gt;POST /transaction/charge_authorization&lt;br/&gt;(the reply is ignored)"]
+  p2["&lt;b&gt;5. Ask Paystack what happened&lt;/b&gt;&lt;br/&gt;GET /transaction/verify/{reference}&lt;br/&gt;straight after the charge"]
 
-  w1["&lt;b&gt;6. Receive webhook&lt;/b&gt;&lt;br/&gt;POST /public/court-billing/paystack/webhook&lt;br/&gt;no login — signature is the trust"]
-  w2{"X-Paystack-Signature valid?"}
-  w3{"Which event?"}
-  w4{"Invoice already PAID?"}
-  w5{"Amount matches?"}
+  v1{"What does Paystack say?"}
+  v2{"Amount matches?"}
   w6["Invoice → PAID (PAYSTACK_RECURRING)&lt;br/&gt;extend subscription, retry_count = 0"]
-  w7["Invoice → OVERDUE&lt;br/&gt;retry_count + 1"]
-  e1["400: invalid signature"]
-  e2["400: amount mismatch"]
-  n1["Ignored — no-op"]
+  w7["Invoice → OVERDUE&lt;br/&gt;retry_count + 1, grace starts"]
+  v3["Still processing, or the request&lt;br/&gt;never got through:&lt;br/&gt;invoice stays PENDING"]
+  e2["Not settled: amount mismatch"]
+
+  r1["&lt;b&gt;Reconcile job&lt;/b&gt;&lt;br/&gt;hourly, and daily at 07:25&lt;br/&gt;GET /transaction/verify/{reference}&lt;br/&gt;for every PENDING attempt"]
+  r2{"Unresolved after a day?"}
+  r3["Paystack saw it and it is still not paid:&lt;br/&gt;counts as a failed attempt"]
+  r4["Paystack never saw it:&lt;br/&gt;invoice closed, NOT counted against the court"]
+
+  n2["Daily job no longer picks this court up&lt;br/&gt;(back to paying by hand)"]
   e3["400: no saved card on file"]
 
   s1(["ACTIVE"])
@@ -73,24 +76,24 @@ flowchart TD
   e3 -.->|"pay once first"| c4
   c4 -->|"card captured"| c1
   c2 -->|"saved card exists"| k1
-  c3 -.-> n2["Daily job no longer picks this court up&lt;br/&gt;(back to paying by hand)"]
+  c3 -.-> n2
 
   k1 --> k2
-  k2 -->|"yes"| k3 --> p1
+  k2 -->|"yes"| k3 --> p1 --> p2 --> v1
   k2 -->|"no"| k4
-  k4 --> s2
-  p1 -.->|"async"| p2
-  p2 --> w1 --> w2
-  w2 -->|"no"| e1
-  w2 -->|"yes"| w3
-  w3 -->|"charge.success"| w4
-  w3 -->|"charge.failed"| w7
-  w3 -->|"anything else"| n1
-  w4 -->|"yes"| n1
-  w4 -->|"no"| w5
-  w5 -->|"no"| e2
-  w5 -->|"yes"| w6 --> s1
+  v1 -->|"success"| v2
+  v1 -->|"failed"| w7
+  v1 -->|"anything else"| v3
+  v2 -->|"no"| e2
+  v2 -->|"yes"| w6 --> s1
   w7 --> s2
+  v3 --> r1
+  r1 -->|"Paystack now says paid"| v2
+  r1 -->|"Paystack says failed"| w7
+  r1 --> r2
+  r2 -->|"no: try again next hour"| r1
+  r2 -->|"yes, Paystack knows it"| r3 --> w7
+  r2 -->|"yes, Paystack does not"| r4
   s2 -->|"next day's cron retries"| k1
   s2 -.->|"paid by hand or by admin"| a1
   a1 --> s1
@@ -106,11 +109,10 @@ flowchart TD
   classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
   class a1 admin
   class c1,c2,c3,c4 court
-  class k1,k2,k3,k4,w1,w2,w3,w4,w5,w6,w7,n1,n2 system
+  class k1,k2,k3,k4,v1,v2,v3,w6,w7,r1,r2,r3,r4,n2 system
   class p1,p2 paystack
-  class s1,s2 state
-  class e1,e2,e3 err
-  class s3 state
+  class s1,s2,s3 state
+  class e2,e3 err
 </pre>
   </div>
 
@@ -119,10 +121,10 @@ flowchart TD
     <ul>
       <li>A court that only ever pays by bank transfer has no saved card, so it can't use auto-renew. It stays on manual renewal and pays each cycle through <a href="02-court-checkout.html">checkout</a>.</li>
       <li>Turning on auto-renew never charges the court. It only reuses a card saved from an earlier payment, so a court has to pay once by hand first.</li>
-      <li>The immediate reply from Paystack's charge call is deliberately ignored. Only the signed webhook can mark the invoice paid, so one payment can never be applied by two code paths.</li>
+      <li>There is no webhook: this app shares its Paystack account with others, so it cannot count on being told anything. The reply to the charge call is deliberately ignored; the outcome comes from asking Paystack (verify) about that charge, straight away and again hourly if it was still processing. The reconcile job runs before the daily dunning job, so a court that has paid is never moved to grace.</li>
       <li>Retries stop once the configured attempts are used (default 3) and the subscription stays in <code>GRACE</code> until grace runs out.</li>
       <li>What happens after a failed charge is covered by the <a href="06-dunning-suspension.html">dunning and suspension</a> flow: grace, retries (the limit is set by the admin, default 3), and suspension.</li>
-      <li>A network failure calling Paystack doesn't count as a failed attempt; the subscription is simply picked up again on the next daily run.</li>
+      <li>A charge Paystack never saw (for example a network failure sending it) is not a declined card, so it is closed without counting against the court. The next daily run tries again.</li>
     </ul>
   </div>
 </div>

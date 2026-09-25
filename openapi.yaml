@@ -2541,11 +2541,21 @@ paths:
       tags: [Court Subscription Billing]
       summary: Confirm a checkout payment and activate/extend the subscription
       description: >
-        Call this after Paystack redirects the court back. Idempotent — a
-        reload/re-hit with an already-processed reference is a no-op, not
-        a second extension. Rejects if the verified amount doesn't match
-        the plan's price, or if Paystack reports the payment as anything
-        other than successful.
+        Call this after Paystack redirects the court back. It asks Paystack
+        about the reference and confirms the payment if it succeeded.
+        Idempotent — a reload/re-hit with an already-processed reference is
+        a no-op, not a second extension, and two callers confirming at once
+        can never extend the subscription twice. Rejects if the verified
+        amount doesn't match the plan's price, or if Paystack does not
+        (yet) report the payment as successful.
+
+
+        There is no webhook. A bank transfer often lands after the court
+        has left the page, so while a transfer is pending keep calling this
+        (every few seconds at first, then about every 30 seconds): a 400
+        "Payment not completed" means not paid yet. An hourly job on the
+        server also checks every pending attempt with Paystack, so the
+        payment is confirmed even if the court stops calling.
       requestBody:
         required: true
         content:
@@ -2597,31 +2607,6 @@ paths:
             No subscription to modify, or no saved card on file for AUTO.
             A court that has only paid by bank transfer has no card on
             file, so it stays on manual renewal.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GenericResponse"
-
-  /public/court-billing/paystack/webhook:
-    post:
-      tags: [Court Subscription Billing]
-      summary: Paystack recurring-charge webhook (charge.success / charge.failed)
-      description: >
-        Called by Paystack directly, not by JudicAI frontends — no auth
-        middleware. Trust comes entirely from verifying the
-        X-Paystack-Signature header (HMAC-SHA512 of the raw request body,
-        keyed by the Paystack secret key) before anything in the payload
-        is acted on. Confirms recurring/AUTO charges, and also any
-        checkout payment that completes after the court has left the
-        Paystack page (typically a bank transfer), by matching the
-        transaction reference to its invoice. The invoice's `paid_via`
-        records which kind it was. A payment already confirmed through
-        /court/subscription/verify is left unchanged.
-      responses:
-        "200":
-          description: Event processed (or intentionally ignored, e.g. an unknown reference or uninteresting event type)
-        "400":
-          description: Invalid signature or payload
           content:
             application/json:
               schema:

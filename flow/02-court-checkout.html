@@ -65,6 +65,7 @@ flowchart TD
   p1["POST /transaction/initialize&lt;br/&gt;returns authorization_url"]
   p2["Hosted checkout page&lt;br/&gt;(external — no JudicAI endpoint)"]
   p3["GET /transaction/verify/{reference}"]
+  k9["&lt;b&gt;Reconcile job&lt;/b&gt;&lt;br/&gt;hourly, and daily at 07:25&lt;br/&gt;verifies every pending attempt,&lt;br/&gt;so a transfer that lands later is caught"]
 
   r1(["Subscription ACTIVE"])
   r2(["Invoice stays PENDING"])
@@ -76,6 +77,8 @@ flowchart TD
   c3 -->|"4. redirect the court"| p2
   p2 -->|"court abandons"| r2
   r2 -.-> c6
+  r2 -.->|"court leaves; transfer lands later"| k9
+  k9 -->|"Paystack says paid"| b7
   c6 -.-> b1
   p2 -->|"5. court pays; Paystack redirects to&lt;br/&gt;COURT_BILLING_CALLBACK_URL?reference=..."| c4
   c4 --> b4
@@ -105,6 +108,7 @@ flowchart TD
   class c1,c2,c3,c4,c5,c6,c7 court
   class b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11 system
   class b12 todo
+  class k9 system
   class p1,p2,p3 paystack
   class r1,r2 state
   class e1,e2,e3,e4 err
@@ -115,7 +119,7 @@ flowchart TD
     <h2>Things worth knowing</h2>
     <ul>
       <li>Verify is safe to call twice. A second call for a reference that's already paid returns the current subscription and changes nothing.</li>
-      <li>A court can pay by card or by bank transfer. A transfer that lands after the court has left the page is picked up by the Paystack webhook, so nothing needs to be repeated. The invoice's <code>paid_via</code> records which way it was paid.</li>
+      <li>A court can pay by card or by bank transfer. A transfer often lands after the court has left the page. There is no webhook: while a transfer is pending, the page should keep calling verify (every few seconds at first, then every 30 seconds), and an hourly reconcile job confirms it even if the court has gone. The invoice's <code>paid_via</code> records which way it was paid.</li>
       <li>Only a card is saved. A court that pays by transfer has no saved card, so it can't switch on auto-renew and pays each cycle through this flow.</li>
       <li>Renewing early adds a cycle on top of the existing end date, so no paid time is lost.</li>
       <li>The dashed <b>email</b> box is designed but not built. After a successful checkout, every Judge, Legal Aide and Registrar of the court is emailed a payment confirmation. It is plain HTML sent by the backend, not a Mailjet template. The draft is <code>email/subscription-payment-confirmation.html</code>.</li>

@@ -46,7 +46,7 @@ flowchart TD
   c5["&lt;b&gt;Court: auto-renew on/off&lt;/b&gt;&lt;br/&gt;POST /court/subscription/renewal-mode"]
   k2["&lt;b&gt;07:00 billing cron&lt;/b&gt;&lt;br/&gt;no endpoint"]
   p2["Paystack: charge saved card"]
-  p3["&lt;b&gt;Paystack webhook&lt;/b&gt;&lt;br/&gt;POST /public/court-billing/paystack/webhook"]
+  p3["&lt;b&gt;Verify with Paystack&lt;/b&gt;&lt;br/&gt;after each charge, then the hourly reconcile job&lt;br/&gt;GET /transaction/verify/{reference}"]
   sG(["GRACE"])
   sS(["SUSPENDED + creating and editing paused"])
   k1["&lt;b&gt;06:30 waiver cap cron&lt;/b&gt;&lt;br/&gt;no endpoint"]
@@ -89,7 +89,7 @@ flowchart TD
     <ul>
       <li><a href="01-platform-admin-plans-workflow.html">Platform Admin plans workflow</a> — create, edit, publish, duplicate, archive, delete</li>
       <li><a href="02-court-checkout.html">Subscription checkout</a> — paying once per cycle</li>
-      <li><a href="03-recurring.html">Recurring billing</a> — auto-renew, webhook, retries, grace</li>
+      <li><a href="03-recurring.html">Recurring billing</a> — auto-renew, verify after each charge, the reconcile job, retries, grace</li>
       <li><a href="04-platform-subscriptions.html">Platform subscriptions</a> — every court's subscription, payments and attempts; invoices: raise, remind, mark paid, waive, receipts</li>
       <li><a href="06-dunning-suspension.html">Dunning &amp; suspension</a> — reminder, grace and retry rules; the daily job; what a suspended court can and can't do</li>
       <li><a href="05-payment-config.html">Court payment configuration</a> — prices and payout account</li>

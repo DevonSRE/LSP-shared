@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-09-25 — Paystack payments are confirmed by verifying, not by webhook
+
+**Tag:** Web · **BREAKING** for one endpoint: `POST /public/court-billing/paystack/webhook` is removed. If you registered that URL in the Paystack dashboard, delete it: nothing calls it any more. Everything else keeps its shape.
+
+**Why.** The Paystack account is shared with other apps. An account has one webhook URL per mode, so this app could not rely on receiving events. Payments are now confirmed only by asking Paystack about the payment's reference (`GET /transaction/verify/{reference}`), which only ever returns this app's own transactions.
+
+**What changed**
+- **Automatic charges** are verified straight after they are made. Confirmed, failed, or (if Paystack is still processing) left pending for the reconcile job.
+- **New reconcile job**, hourly and again daily at 07:25 (before the 07:30 dunning job), verifies every pending subscription attempt with Paystack. It confirms a bank transfer that landed after the court left the page, and settles automatic charges that were still processing.
+- **Unresolved automatic charges:** still pending after 24 hours counts as a failed attempt. A charge Paystack has no record of is closed without counting against the court, because the card was not declined.
+- **A court that has already paid can no longer be moved to grace** while its payment waits to be confirmed: the reconcile job runs before the dunning job.
+- **Confirming is now atomic.** If the court's page and the job confirm the same payment at once, the subscription is extended once.
+
+**For the frontend.** While a bank transfer is pending, keep calling `POST /court/subscription/verify` (every few seconds at first, then about every 30 seconds). A `400 Payment not completed` means not paid yet. It is safe to call repeatedly. The server also confirms the payment within the hour if the court stops polling.
+
+See `openapi.yaml` (`/court/subscription/verify`) and `flow/03-recurring.html`.
+
 ## 2026-09-25 — Dunning settings, grace and suspension (Workflow 5)
 
 **Tag:** Web · NON-BREAKING for request and response shapes (new endpoints and additive fields). **Behaviour change:** a court whose subscription becomes `SUSPENDED` now gets `403` on creating, editing and deleting case records (see below). Reading is never restricted, and courts with no subscription are unaffected.
@@ -81,7 +98,7 @@ Note: `openapi.yaml` already documented the configuration routes as `/courts/con
 | `WAIVED` | No money collected (unchanged) |
 
 - **Courts can pay by bank transfer.** Nothing extra is needed. Only a card can be saved for auto-renewal, so a court that pays by transfer has `has_saved_card: false`, and `POST /court/subscription/renewal-mode` with `AUTO` is refused (400). It stays on manual renewal and pays each cycle through checkout.
-- **A transfer that lands after the court leaves the page** is now confirmed by the Paystack webhook, the same way as any other payment, and the subscription activates on its own. Previously the webhook labelled these as recurring charges.
+- **A transfer that lands after the court leaves the page** is now confirmed by the Paystack webhook, the same way as any other payment, and the subscription activates on its own. Previously the webhook labelled these as recurring charges. ~~**Superseded 2026-09-25:** there is no webhook now; the reconcile job confirms these by verifying with Paystack.~~
 - **Clearer error** when a court tries to switch to `AUTO` without a card: "Auto-renew needs a saved card. Pay once by card to enable it — bank transfer payments can't be renewed automatically".
 
 See `openapi.yaml` (`PaymentMethod` schema, `renewal-mode` and the webhook).
@@ -166,7 +183,7 @@ New endpoints — no existing contract changed. This is the **Devon → Court** 
 - `POST /court/subscription/checkout` — start paying for a plan/cycle; backend-initiated Paystack transaction, returns a redirect URL.
 - `POST /court/subscription/verify` — confirm payment after the Paystack redirect; idempotent, amount-checked.
 - `POST /court/subscription/renewal-mode` — switch between `MANUAL` and `AUTO` renewal. Never charges the court — `AUTO` only reuses a card already on file.
-- `POST /public/court-billing/paystack/webhook` — Paystack calls this directly (no auth middleware, signature-verified). Drives recurring/`AUTO` billing. ~~only~~ **Updated 2026-09-25:** it also confirms a checkout payment that completes after the court leaves the page (bank transfer).
+- ~~`POST /public/court-billing/paystack/webhook`~~ **Removed 2026-09-25** — payments are confirmed by verifying with Paystack instead. See the entry above.
 
 **Invoices**
 - `GET/POST /court/invoices` — list (court-scoped) / raise an ad-hoc invoice (Platform Admin only).
