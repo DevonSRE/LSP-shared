@@ -31,6 +31,8 @@ Every billing endpoint returns **400** with `ERROR: relation "<table>" does not 
 
 **Ask:** run the migrations on staging for `court_subscription_plans`, `court_subscriptions`, `invoices` and `court_payment_configs`, then tell the frontend team so the test can be rerun.
 
+**Re-tested 2026-09-25 13:04 UTC (court endpoints #4–#8, as a Judge): unchanged.** All five still return 400 with the same missing-table errors, and `verify` still returns the SQL error in `message` (BUG-02). The Platform Admin endpoints (#1–#3) were not re-tested in this pass.
+
 **Impact while unfixed:** `GET /court/subscription` runs on every court page load (it decides whether a court is read-only). It fails on every page, so the frontend falls back to "unrestricted" by design — the subscription lockout cannot work on staging until this is fixed.
 
 ### BUG-02 — `POST /court/subscription/verify` returns a raw database error in `message`
