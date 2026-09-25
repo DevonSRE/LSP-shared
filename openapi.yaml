@@ -741,6 +741,179 @@ components:
           type: integer
           description: Consecutive failed recurring-charge attempts since the subscription last entered GRACE. Resets to 0 on any successful charge.
 
+    CourtSubscriptionOverview:
+      type: object
+      description: >
+        One court and where it stands with its subscription. Every court
+        appears, including one that has never subscribed, which has
+        status NONE and empty subscription fields.
+      properties:
+        court_id:
+          type: integer
+          format: int64
+        court_name:
+          type: string
+        court_code:
+          type: string
+        state:
+          type: string
+        subscription_id:
+          type: integer
+          format: int64
+          nullable: true
+        plan_id:
+          type: integer
+          format: int64
+          nullable: true
+        plan_name:
+          type: string
+          description: Empty if the court has never subscribed.
+        status:
+          type: string
+          enum: [ACTIVE, GRACE, SUSPENDED, NONE]
+          description: NONE means the court has never subscribed.
+        renewal_mode:
+          type: string
+          description: MANUAL or AUTO. Empty if the court has never subscribed.
+        fee:
+          type: integer
+          format: int64
+          description: In kobo, snapshotted at the last renewal.
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start of the currently paid period. Falls back to subscribed_since for a subscription that predates period tracking.
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: End of the currently paid period; the next billing date.
+        subscribed_since:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the court first subscribed.
+        has_saved_card:
+          type: boolean
+        retry_count:
+          type: integer
+
+    CourtSubscriptionHistoryEntry:
+      type: object
+      description: One confirmed subscription payment.
+      properties:
+        invoice_id:
+          type: integer
+          format: int64
+        invoice_ref:
+          type: string
+        plan_id:
+          type: integer
+          format: int64
+        plan_name:
+          type: string
+        amount:
+          type: integer
+          format: int64
+          description: In kobo.
+        paid_via:
+          $ref: "#/components/schemas/PaymentMethod"
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null for a payment confirmed before this field was recorded.
+        period_start:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start of the period this payment covered. Null for a payment confirmed before this field was recorded.
+        period_end:
+          type: string
+          format: date-time
+          nullable: true
+
+    CourtSubscriptionDetailResponse:
+      type: object
+      properties:
+        subscription:
+          $ref: "#/components/schemas/CourtSubscriptionOverview"
+        history:
+          type: array
+          description: Every confirmed subscription payment, newest first. Empty for a court that has never paid.
+          items:
+            $ref: "#/components/schemas/CourtSubscriptionHistoryEntry"
+
+    CourtSubscriptionAttempt:
+      type: object
+      description: >
+        One try to pay for a subscription, whatever its outcome. PENDING
+        means the court abandoned checkout, or a bank transfer has not
+        landed yet. OVERDUE means an automatic charge failed.
+      properties:
+        invoice_id:
+          type: integer
+          format: int64
+        invoice_ref:
+          type: string
+        paystack_reference:
+          type: string
+        kind:
+          type: string
+          enum: [CHECKOUT, AUTOMATIC]
+          description: CHECKOUT is a court paying through checkout; AUTOMATIC is the daily job charging a saved card.
+        plan_id:
+          type: integer
+          format: int64
+        plan_name:
+          type: string
+        amount:
+          type: integer
+          format: int64
+          description: In kobo.
+        status:
+          $ref: "#/components/schemas/InvoiceStatus"
+        paid_via:
+          $ref: "#/components/schemas/PaymentMethod"
+        attempted_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CourtSubscriptionAttemptsResponse:
+      type: object
+      properties:
+        court_id:
+          type: integer
+          format: int64
+        court_name:
+          type: string
+        summary:
+          type: object
+          description: Counts every attempt for the court, not just the current page.
+          properties:
+            total:
+              type: integer
+            paid:
+              type: integer
+            pending:
+              type: integer
+            overdue:
+              type: integer
+        attempts:
+          allOf:
+            - $ref: "#/components/schemas/PaginatedResult"
+            - type: object
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/CourtSubscriptionAttempt"
+
     # ── Court Invoices ────────────────────────────────────────────────────────
 
     InvoiceStatus:
@@ -1493,7 +1666,7 @@ paths:
 
   # ── Courts ────────────────────────────────────────────────────────────────────
 
-  /courts:
+  /platform/courts:
     get:
       tags: [Courts]
       summary: List courts
@@ -1556,7 +1729,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
-  /courts/constants:
+  /platform/courts/constants:
     get:
       tags: [Courts]
       summary: Court type constants
@@ -1569,7 +1742,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
-  /courts/onboard:
+  /platform/courts/onboard:
     post:
       tags: [Courts]
       summary: Onboard a court with its first judge
@@ -1594,7 +1767,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
-  /courts/{id}:
+  /platform/courts/{id}:
     parameters:
       - name: id
         in: path
@@ -1663,7 +1836,7 @@ paths:
 
   # ── Court Configuration ───────────────────────────────────────────────────────
 
-  /courts/configurations:
+  /platform/court-configurations:
     get:
       tags: [Court Configuration]
       summary: List court configurations
@@ -1711,7 +1884,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
-  /courts/configurations/{id}:
+  /platform/court-configurations/{id}:
     get:
       tags: [Court Configuration]
       summary: Retrieve a court configuration
@@ -1976,6 +2149,135 @@ paths:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
 
+
+  /platform/court-subscriptions:
+    get:
+      tags: [Court Subscription Billing]
+      summary: List every court with its current subscription
+      description: >
+        Platform Admin only. Returns every court, subscribed or not, with
+        its current plan, start date, end date, status and renewal mode.
+        A court that has never subscribed has status NONE and empty
+        subscription fields. Read-only. Ordered by court name.
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Match on court name or court code (case-insensitive).
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, GRACE, SUSPENDED, NONE]
+          description: Only courts in this state. NONE means never subscribed.
+        - name: plan_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Only courts currently on this plan.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated list of courts with their subscription
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResult"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/CourtSubscriptionOverview"
+        "400":
+          description: Unknown status filter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /platform/court-subscriptions/{court_id}:
+    get:
+      tags: [Court Subscription Billing]
+      summary: One court's subscription and every payment it has made
+      description: >
+        Platform Admin only. Returns the court's current subscription
+        (status NONE if it has never subscribed) and its history: every
+        confirmed subscription payment, newest first, with the plan, amount,
+        how it was paid, when, and the period it covered. Unpaid attempts
+        are not included; see the attempts endpoint. Read-only.
+      parameters:
+        - name: court_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Court subscription and payment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionDetailResponse"
+        "400":
+          description: Court not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
+  /platform/court-subscriptions/{court_id}/attempts:
+    get:
+      tags: [Court Subscription Billing]
+      summary: Every attempt a court has made to pay for its subscription
+      description: >
+        Platform Admin only. Every checkout and every automatic charge
+        for the court, whether or not it succeeded, newest first, with
+        totals by outcome across the whole history. A PENDING attempt was
+        abandoned, or is a bank transfer that has not landed yet; an
+        OVERDUE one is a failed automatic charge. Ad-hoc invoices raised
+        by an admin are not attempts. Read-only.
+      parameters:
+        - name: court_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Attempts and their summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourtSubscriptionAttemptsResponse"
+        "400":
+          description: Court not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
 
   /court/subscription:
     get:

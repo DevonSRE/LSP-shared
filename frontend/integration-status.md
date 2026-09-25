@@ -10,6 +10,8 @@ This tracks, per documented endpoint, whether the JudicAI frontend (`platform` a
 
 **Legend:** ✅ Integrated & matches spec · ⚠️ Integrated but path/contract differs from spec · ❌ Not integrated
 
+> **2026-09-25 — paths moved.** The Courts and Court Configuration endpoints now live under `/platform` (`/courts` → `/platform/courts`, `/court_config` → `/platform/court-configurations`). The rows below use the new paths, but the ✅/⚠️ statuses and the "Frontend calls …" notes were written against the old ones. Until `PlatformService` is updated, every Courts and Court Configuration row is effectively ⚠️ (frontend still calls the old paths, which now return 404).
+
 ---
 
 ## Authentication
@@ -24,21 +26,21 @@ This tracks, per documented endpoint, whether the JudicAI frontend (`platform` a
 
 | Endpoint (spec) | Status | Note |
 | --- | --- | --- |
-| `GET /courts` | ✅ | `PlatformService.listCourts` |
-| `POST /courts` | ✅ | `PlatformService.createCourt` |
-| `GET /courts/constants` | ⚠️ | Frontend calls `/courts/constants?constant=court_types\|models`, spec defines no query param (implies both lists returned together). Functionally fine if backend ignores/accepts the param, but worth confirming. |
-| `POST /courts/onboard` | ✅ | `PlatformService.onboardCourt` |
-| `GET /courts/{id}` | ✅ | `PlatformService.getCourt` |
-| `PATCH /courts/{id}` | ✅ | `PlatformService.updateCourt` |
-| `DELETE /courts/{id}` | ✅ | `PlatformService.deleteCourt` |
+| `GET /platform/courts` | ✅ | `PlatformService.listCourts` |
+| `POST /platform/courts` | ✅ | `PlatformService.createCourt` |
+| `GET /platform/courts/constants` | ⚠️ | Frontend calls `/courts/constants?constant=court_types\|models`, spec defines no query param (implies both lists returned together). Functionally fine if backend ignores/accepts the param, but worth confirming. |
+| `POST /platform/courts/onboard` | ✅ | `PlatformService.onboardCourt` |
+| `GET /platform/courts/{id}` | ✅ | `PlatformService.getCourt` |
+| `PATCH /platform/courts/{id}` | ✅ | `PlatformService.updateCourt` |
+| `DELETE /platform/courts/{id}` | ✅ | `PlatformService.deleteCourt` |
 
 ## Court Configuration
 
 | Endpoint (spec) | Status | Note |
 | --- | --- | --- |
-| `GET /courts/configurations` | ⚠️ | Frontend calls `/court_config` (`PlatformService.listCourtConfigs`) — different path entirely. Needs alignment. |
-| `POST /courts/configurations` | ❌ | No create-configuration flow wired up in the frontend yet. |
-| `GET /courts/configurations/{id}` | ❌ | Not wired up. |
+| `GET /platform/court-configurations` | ⚠️ | Frontend calls `/court_config` (`PlatformService.listCourtConfigs`) — different path entirely. Needs alignment. |
+| `POST /platform/court-configurations` | ❌ | No create-configuration flow wired up in the frontend yet. |
+| `GET /platform/court-configurations/{id}` | ❌ | Not wired up. |
 
 ## Users
 

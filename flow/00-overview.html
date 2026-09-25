@@ -53,6 +53,7 @@ flowchart TD
   k1["&lt;b&gt;06:30 waiver cap cron&lt;/b&gt;&lt;br/&gt;no endpoint"]
   ia["&lt;b&gt;Admin: invoices&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices&lt;br/&gt;POST …/{id}/remind | mark-paid | waive"]
   ic["&lt;b&gt;Court: invoices&lt;/b&gt;&lt;br/&gt;GET /court/invoices&lt;br/&gt;GET …/{id}/receipt"]
+  pw["&lt;b&gt;Admin: watch subscriptions&lt;/b&gt;&lt;br/&gt;GET /platform/court-subscriptions&lt;br/&gt;GET …/{court_id} · GET …/{court_id}/attempts"]
   pc["&lt;b&gt;Court → Lawyer settings&lt;/b&gt;&lt;br/&gt;GET · PUT /court/payment_config"]
 
   a1 --> c1 --> c2 --> p1 --> c3 --> sA
@@ -66,6 +67,7 @@ flowchart TD
   c2 --> ia
   k2 --> ia
   ia --> ic
+  sA -.->|"every court, its payments and attempts"| pw
   ia -->|"mark-paid reactivates"| sA
   pc
 
@@ -75,7 +77,7 @@ flowchart TD
   classDef paystack fill:#e5d9ff,stroke:#6b4cc4,color:#241452
   classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
   classDef todo fill:#ffffff,stroke:#c98a10,stroke-dasharray:5 4,color:#3d2a00
-  class a1,ia admin
+  class a1,ia,pw admin
   class c1,c2,c3,c4,c5,ic,pc court
   class p1,p2,p3 paystack
   class k1,k2 system
@@ -90,7 +92,7 @@ flowchart TD
       <li><a href="01-platform-admin-plans-workflow.html">Platform Admin plans workflow</a> — create, edit, publish, duplicate, archive, delete</li>
       <li><a href="02-court-checkout.html">Subscription checkout</a> — paying once per cycle</li>
       <li><a href="03-recurring.html">Recurring billing</a> — auto-renew, webhook, retries, grace</li>
-      <li><a href="04-invoices.html">Invoices</a> — raise, remind, mark paid, waive, receipts</li>
+      <li><a href="04-platform-subscriptions.html">Platform subscriptions</a> — every court's subscription, payments and attempts; invoices: raise, remind, mark paid, waive, receipts</li>
       <li><a href="05-payment-config.html">Court payment configuration</a> — prices and payout account</li>
     </ul>
   </div>

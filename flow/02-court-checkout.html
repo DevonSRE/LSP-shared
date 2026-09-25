@@ -119,7 +119,7 @@ flowchart TD
       <li>Only a card is saved. A court that pays by transfer has no saved card, so it can't switch on auto-renew and pays each cycle through this flow.</li>
       <li>Renewing early adds a cycle on top of the existing end date, so no paid time is lost.</li>
       <li>The dashed <b>email</b> box is designed but not built. After a successful checkout, every Judge, Legal Aide and Registrar of the court is emailed a payment confirmation. It is plain HTML sent by the backend, not a Mailjet template. The draft is <code>email/subscription-payment-confirmation.html</code>.</li>
-      <li>The receipt (step 9) is covered by the <a href="04-invoices.html">invoices</a> flow. That endpoint returns the paid invoice's details as JSON; there is no PDF download yet.</li>
+      <li>The receipt (step 9) is covered by the <a href="04-platform-subscriptions.html">invoices</a> flow. That endpoint returns the paid invoice's details as JSON; there is no PDF download yet.</li>
       <li>Every successful payment quietly stores a reusable card when Paystack provides one. That's what later lets the court switch on auto-renew — see the <a href="03-recurring.html">recurring billing</a> flow.</li>
       <li>A non-published plan can only be checked out by a court that's already on that exact plan (renewal). See the <a href="01-platform-admin-plans-workflow.html">plans workflow</a>.</li>
     </ul>

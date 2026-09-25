@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-09-25 — Platform Admin subscription views
+
+**Tag:** Web · NON-BREAKING — three new read-only endpoints for Platform Admins, plus two additive fields. No existing contract changed.
+
+- `GET /platform/court-subscriptions` — every court, subscribed or not, with its current plan, `start_date`, `end_date`, `status`, `renewal_mode` and whether a card is saved. A court that has never subscribed has `status: NONE` and empty subscription fields. Filters: `search` (court name or code), `status` (`ACTIVE`, `GRACE`, `SUSPENDED` or `NONE`), `plan_id`, `page`, `size`. An unknown `status` returns 400.
+- `GET /platform/court-subscriptions/{court_id}` — one court's current subscription plus its history: every confirmed subscription payment, newest first, with the plan, amount, `paid_via`, `paid_at` and the period it covered. Unknown court returns 400.
+- `GET /platform/court-subscriptions/{court_id}/attempts` — every checkout and automatic charge the court has made, paid or not, newest first and paginated, with a `summary` (total, paid, pending, overdue) across the whole history. `kind` is `CHECKOUT` or `AUTOMATIC`. `PENDING` means the court abandoned checkout, or a bank transfer hasn't landed yet; `OVERDUE` means an automatic charge failed. Ad-hoc invoices are not attempts.
+
+**Data now recorded (needed for the dates above).** A confirmed subscription payment now stores when it was paid and the period it covers (`paid_at`, `period_start`, `period_end` on the invoice), and the subscription stores the start of its current paid period. Payments confirmed before this release have none of these, so their history entries show `null` dates, and a subscription without a recorded period start reports `start_date` as `subscribed_since`.
+
+**Flowchart:** `flow/04-invoices.html` is now `flow/04-platform-subscriptions.html` and covers these views as well as invoices.
+
+See `openapi.yaml` (`Court Subscription Billing` tag; `CourtSubscriptionOverview`, `CourtSubscriptionDetailResponse`, `CourtSubscriptionAttemptsResponse`).
+
+## 2026-09-25 — Courts and Court Configuration moved under `/platform`
+
+**Tag:** Web · **BREAKING** — the old paths return 404. The Platform Admin panel (`LSP-frontend`, `PlatformService`) must be updated together with this release.
+
+This completes the convention that every endpoint only a Platform Admin can call lives under `/api/v1/platform/...`. Roles, request bodies and responses are unchanged.
+
+| Old | New |
+|---|---|
+| `GET /courts` | `GET /platform/courts` |
+| `POST /courts` | `POST /platform/courts` |
+| `GET /courts/constants` | `GET /platform/courts/constants` |
+| `POST /courts/onboard` | `POST /platform/courts/onboard` |
+| `GET /courts/{id}` | `GET /platform/courts/{id}` |
+| `PATCH /courts/{id}` | `PATCH /platform/courts/{id}` |
+| `DELETE /courts/{id}` | `DELETE /platform/courts/{id}` |
+| `GET /court_config` | `GET /platform/court-configurations` |
+| `POST /court_config` | `POST /platform/court-configurations` |
+| `GET /court_config/{id}` | `GET /platform/court-configurations/{id}` |
+
+Note: `openapi.yaml` already documented the configuration routes as `/courts/configurations`, which the server never served. The spec now matches the server.
+
+**Not moved:** `/users` and the court-facing groups (`/court/...`, `/metric`, `/bin`, cases, casefiles, evidence, uploads, schedules), which court staff also use.
+
 ## 2026-09-25 — Bank transfer payments and `paid_via`
 
 **Tag:** Web · **BREAKING** for one field value: `paid_via` no longer returns `PAYSTACK_ONE_TIME`. Nothing has consumed it yet; treat any stored or hard-coded `PAYSTACK_ONE_TIME` as `PAYSTACK_CARD`, `PAYSTACK_TRANSFER` or `PAYSTACK_OTHER`.

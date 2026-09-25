@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Invoices Flow</title>
+<title>Platform Subscriptions Flow</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="wrap">
-  <div class="crumb"><a href="index.html">Flowcharts</a> / Invoices</div>
-  <h1>Invoices — raising, reminding, settling, waiving</h1>
-  <p class="sub">Invoices come from two places: automatically, every time a court pays or is charged, and by hand when a Platform Admin bills a court outside its normal cycle. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Platform subscriptions</div>
+  <h1>Platform subscriptions — monitoring courts, settling invoices</h1>
+  <p class="sub">A Platform Admin sees where every court stands with its subscription, opens one court to see what it has paid and every attempt it has made, and settles invoices. Invoices come from two places: automatically, every time a court pays or is charged, and by hand when a Platform Admin bills a court outside its normal cycle. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
   <div class="audience">
-    <span class="label">Used by</span> <span class="aud admin">Platform Admin</span><span class="aud-role">raises, reminds, marks paid and waives</span> <span class="aud court">Court Admin</span><span class="aud-role">views their own invoices and receipts</span>
+    <span class="label">Used by</span> <span class="aud admin">Platform Admin</span><span class="aud-role">monitors subscriptions; raises, reminds, marks paid and waives invoices</span> <span class="aud court">Court Admin</span><span class="aud-role">views their own invoices and receipts</span>
   </div>
   <div class="audience" style="margin-top:-6px">Court Admin means a Judge, Legal Aide or Registrar. </div>
 
@@ -36,6 +36,15 @@
   <div class="canvas">
 <pre class="mermaid">
 flowchart TD
+  p1["&lt;b&gt;See every court's subscription&lt;/b&gt;&lt;br/&gt;GET /platform/court-subscriptions&lt;br/&gt;filters: search, status, plan_id, page, size"]
+  p2["&lt;b&gt;Open one court&lt;/b&gt;&lt;br/&gt;GET /platform/court-subscriptions/{court_id}"]
+  p3["&lt;b&gt;See every payment attempt&lt;/b&gt;&lt;br/&gt;GET /platform/court-subscriptions/{court_id}/attempts&lt;br/&gt;page, size"]
+  r1["Every court, subscribed or not:&lt;br/&gt;plan, start date, end date, status,&lt;br/&gt;renewal mode, saved card&lt;br/&gt;(status NONE = never subscribed)"]
+  r2["The court's current subscription,&lt;br/&gt;plus every paid period:&lt;br/&gt;plan, amount, paid via, paid on,&lt;br/&gt;period start and end"]
+  r3["Every try to pay, newest first:&lt;br/&gt;checkout or automatic, paid / pending / overdue,&lt;br/&gt;with totals for the whole history"]
+  pe1["400: status must be ACTIVE, GRACE,&lt;br/&gt;SUSPENDED or NONE"]
+  pe2["400: court not found"]
+
   o1["Court checks out or is auto-charged&lt;br/&gt;POST /court/subscription/checkout · daily billing cron"]
   o2["&lt;b&gt;Raise ad-hoc invoice&lt;/b&gt;&lt;br/&gt;POST /platform/court-invoices&lt;br/&gt;court_id, period, amount, due_date"]
   sOpen(["PENDING / OVERDUE"])
@@ -61,6 +70,16 @@ flowchart TD
   e4["400: can't waive a paid invoice"]
   e5["400: invoice not found&lt;br/&gt;(same answer for another court's invoice)"]
   e6["400: only a paid invoice has a receipt"]
+
+  p1 --> r1
+  p1 -.->|"bad status filter"| pe1
+  r1 -->|"pick a court"| p2
+  p2 --> r2
+  p2 -.->|"no such court"| pe2
+  r2 -->|"see how it got here"| p3
+  p3 --> r3
+  p3 -.->|"no such court"| pe2
+  r3 -.->|"an attempt's invoice can be acted on below"| sOpen
 
   o1 --> sOpen
   o2 --> sOpen
@@ -94,17 +113,21 @@ flowchart TD
   classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
   classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
   classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
-  class o2,a1,a2,a3 admin
+  class p1,p2,p3,o2,a1,a2,a3 admin
   class c1,c2 court
-  class o1,b2,b3,b4,b5,b6,b8 system
+  class r1,r2,r3,o1,b2,b3,b4,b5,b6,b8 system
   class sOpen,sPaid,sW state
-  class e1,e2,e3,e4,e5,e6 err
+  class pe1,pe2,e1,e2,e3,e4,e5,e6 err
 </pre>
   </div>
 
   <div class="notes">
     <h2>Things worth knowing</h2>
     <ul>
+      <li>The three subscription views are Platform Admin only and read-only. They change nothing.</li>
+      <li>The list shows every court, including ones that have never subscribed (status <code>NONE</code>). <code>start_date</code> and <code>end_date</code> are the currently paid period; <code>subscribed_since</code> is when the court first subscribed.</li>
+      <li>The court detail lists confirmed payments only. A payment made before this release has no period dates or paid-on time, because they weren't recorded then.</li>
+      <li>An attempt is any checkout or automatic charge, whatever happened. <b>Pending</b> means the court abandoned checkout, or a bank transfer hasn't landed yet. <b>Overdue</b> means an automatic charge failed. Ad-hoc invoices raised by an admin are not attempts.</li>
       <li>Raising, reminding, marking paid and waiving are Platform Admin only. Listing and receipts are open to court users, scoped to their own court.</li>
       <li>Marking an invoice paid that belongs to a subscription reactivates and extends that subscription the same way a successful Paystack payment does — the logic isn't duplicated.</li>
       <li>Reminders only work for a court that has paid at least once, because the recipient is the email captured from its last successful payment. There's no wider lookup of court staff yet.</li>
