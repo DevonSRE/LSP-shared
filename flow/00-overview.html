@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Court Billing — Overview Flow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Overview</div>
+  <h1>Court billing — everything at once</h1>
+  <p class="sub">The whole billing system on one page, with the features crossing into each other. Every box shows the endpoint it calls (base path <code>/api/v1</code>). For the detail behind any cluster, open its own flowchart from the <a href="index.html">index</a>.</p>
+  <div class="audience">
+    <span class="label">Used by</span> <span class="aud admin">Platform Admin</span><span class="aud-role">sets up plans and settles invoices</span> <span class="aud court">Court Admin</span><span class="aud-role">subscribes, pays and manages renewal</span>
+  </div>
+  <div class="audience" style="margin-top:-6px">Court Admin means a Judge, Legal Aide or Registrar. </div>
+
+
+  <div class="legend">
+    <span><i class="dot admin"></i>Platform Admin</span>
+    <span><i class="dot court"></i>Court Admin</span>
+    <span><i class="dot paystack"></i>Paystack</span>
+    <span><i class="dot system"></i>System / cron</span>
+    <span><i class="dot state"></i>State</span>
+    <span><i class="dot todo"></i>Not built yet</span>
+  </div>
+
+  <div class="zoom" aria-label="Zoom">
+    <button id="zfit" type="button">Fit</button>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="level" id="zlevel">Fit</span>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="z100" type="button">100%</button>
+  </div>
+
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TD
+  a1["&lt;b&gt;Admin: manage plans&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans&lt;br/&gt;PATCH …/{id} · POST …/{id}?action=publish | archive | duplicate&lt;br/&gt;POST …/{id}?action=duplicate · DELETE …/{id}"]
+  c1["&lt;b&gt;Court: browse plans&lt;/b&gt;&lt;br/&gt;GET /court/subscription-plans"]
+  c2["&lt;b&gt;Court: pay&lt;/b&gt;&lt;br/&gt;POST /court/subscription/checkout"]
+  p1["Paystack hosted checkout&lt;br/&gt;(external)"]
+  c3["&lt;b&gt;Court: confirm&lt;/b&gt;&lt;br/&gt;POST /court/subscription/verify"]
+  sA(["ACTIVE"])
+  c4["&lt;b&gt;Court: status&lt;/b&gt;&lt;br/&gt;GET /court/subscription"]
+  c5["&lt;b&gt;Court: auto-renew on/off&lt;/b&gt;&lt;br/&gt;POST /court/subscription/renewal-mode"]
+  k2["&lt;b&gt;07:00 billing cron&lt;/b&gt;&lt;br/&gt;no endpoint"]
+  p2["Paystack: charge saved card"]
+  p3["&lt;b&gt;Paystack webhook&lt;/b&gt;&lt;br/&gt;POST /public/court-billing/paystack/webhook"]
+  sG(["GRACE"])
+  sS(["SUSPENDED + lockout"])
+  k1["&lt;b&gt;06:30 waiver cap cron&lt;/b&gt;&lt;br/&gt;no endpoint"]
+  ia["&lt;b&gt;Admin: invoices&lt;/b&gt;&lt;br/&gt;POST /court/invoices&lt;br/&gt;POST …/{id}/remind | mark-paid | waive"]
+  ic["&lt;b&gt;Court: invoices&lt;/b&gt;&lt;br/&gt;GET /court/invoices&lt;br/&gt;GET …/{id}/receipt"]
+  pc["&lt;b&gt;Court → Lawyer settings&lt;/b&gt;&lt;br/&gt;GET · PUT /court/payment_config"]
+
+  a1 --> c1 --> c2 --> p1 --> c3 --> sA
+  sA --> c4
+  c4 -.-> c5 --> k2 --> p2 -.-> p3
+  p3 -->|"success"| sA
+  p3 -->|"failed"| sG
+  sG -->|"retry daily, max 3"| k2
+  sG -.->|"grace expires"| sS
+  k1 -.->|"expired waiver reverts plan"| a1
+  c2 --> ia
+  k2 --> ia
+  ia --> ic
+  ia -->|"mark-paid reactivates"| sA
+  pc
+
+  classDef admin fill:#cfe3ff,stroke:#3b6fb6,color:#10233f
+  classDef court fill:#d3f2df,stroke:#2f8a55,color:#0e2e1d
+  classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
+  classDef paystack fill:#e5d9ff,stroke:#6b4cc4,color:#241452
+  classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
+  classDef todo fill:#ffffff,stroke:#c98a10,stroke-dasharray:5 4,color:#3d2a00
+  class a1,ia admin
+  class c1,c2,c3,c4,c5,ic,pc court
+  class p1,p2,p3 paystack
+  class k1,k2 system
+  class sA,sG state
+  class sS todo
+</pre>
+  </div>
+
+  <div class="notes">
+    <h2>Detail views</h2>
+    <ul>
+      <li><a href="platform-admin-plans-workflow.html">Platform Admin plans workflow</a> — create, edit, publish, duplicate, archive, delete</li>
+      <li><a href="02-checkout.html">Subscription checkout</a> — paying once per cycle</li>
+      <li><a href="03-recurring.html">Recurring billing</a> — auto-renew, webhook, retries, grace</li>
+      <li><a href="04-invoices.html">Invoices</a> — raise, remind, mark paid, waive, receipts</li>
+      <li><a href="05-payment-config.html">Court payment configuration</a> — prices and payout account</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 340 }
+  });
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  const svg = document.querySelector('.mermaid svg');
+  const natural = svg.viewBox.baseVal.width;
+  const level = document.getElementById('zlevel');
+  let z = null; // null = fit to page width
+  const current = () => svg.getBoundingClientRect().width / natural;
+  function apply() {
+    if (z === null) { svg.style.width = '100%'; svg.style.maxWidth = natural + 'px'; level.textContent = 'Fit'; }
+    else { svg.style.width = natural * z + 'px'; svg.style.maxWidth = 'none'; level.textContent = Math.round(z * 100) + '%'; }
+  }
+  document.getElementById('zfit').onclick = () => { z = null; apply(); };
+  document.getElementById('z100').onclick = () => { z = 1; apply(); };
+  document.getElementById('zin').onclick = () => { z = Math.min(2.5, (z ?? current()) * 1.25); apply(); };
+  document.getElementById('zout').onclick = () => { z = Math.max(0.2, (z ?? current()) * 0.8); apply(); };
+  apply();
+</script>
+</body>
+</html>

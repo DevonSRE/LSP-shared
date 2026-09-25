@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Court Payment Configuration Flow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Court payment configuration</div>
+  <h1>Court payment configuration — prices and payout account</h1>
+  <p class="sub">How a court sets what it charges lawyers (price per page and CTC price) and the bank account its share is paid into. This is the <b>Court → Lawyer</b> side and is independent of the Devon → Court subscription billing. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
+  <div class="audience">
+    <span class="label">Used by</span> <span class="aud court">Court Admin</span><span class="aud-role">sets prices and the payout account</span>
+  </div>
+  <div class="audience" style="margin-top:-6px">Court Admin means a Judge, Legal Aide or Registrar. Platform Admin can also call these endpoints, but they always act on the caller's own court.</div>
+
+
+  <div class="legend">
+    <span><i class="dot court"></i>Court Admin (Judge, Legal Aide, Registrar)</span>
+    <span><i class="dot system"></i>JudicAI backend</span>
+    <span><i class="dot state"></i>Result state</span>
+    <span><i class="dot err"></i>Rejected</span>
+  </div>
+
+  <div class="zoom" aria-label="Zoom">
+    <button id="zfit" type="button">Fit</button>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="level" id="zlevel">Fit</span>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="z100" type="button">100%</button>
+  </div>
+
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TD
+  c1["&lt;b&gt;1. Open payment settings&lt;/b&gt;&lt;br/&gt;GET /court/payment_config"]
+  c2["&lt;b&gt;2. Save prices and account&lt;/b&gt;&lt;br/&gt;PUT /court/payment_config&lt;br/&gt;price_per_page, ctc_price,&lt;br/&gt;account_number, bank_name"]
+  c3["&lt;b&gt;Update prices later&lt;/b&gt;&lt;br/&gt;PUT /court/payment_config&lt;br/&gt;prices only, leave account fields out"]
+  c4["&lt;b&gt;Try to change the account&lt;/b&gt;&lt;br/&gt;PUT /court/payment_config&lt;br/&gt;with a new account_number"]
+
+  b1{"Config exists for this court?"}
+  b2["Return empty config&lt;br/&gt;account_locked = false"]
+  b3["Return saved config"]
+  b4{"Payload valid?&lt;br/&gt;prices required, bank_name needed&lt;br/&gt;whenever account_number is sent"}
+  b5{"Config exists?"}
+  b6["Create config with everything sent"]
+  b7{"account_number sent?"}
+  b8{"Account already set?"}
+  b9["Update prices only"]
+  b10["Update prices and set account + bank name"]
+  b11["Write audit-trail entry"]
+  e1["400: validation error"]
+  e2["400: payout account already set —&lt;br/&gt;contact support to change it"]
+
+  s1(["Saved — account_locked = true once an account is set"])
+  s2(["Saved — account still unlocked"])
+
+  c1 --> b1
+  b1 -->|"no"| b2
+  b1 -->|"yes"| b3
+  b2 -.->|"court fills the form"| c2
+  b3 -.->|"prices change"| c3
+  b3 -.->|"wants a different account"| c4
+
+  c2 --> b4
+  c3 --> b4
+  c4 --> b4
+  b4 -->|"no"| e1
+  b4 -->|"yes"| b5
+  b5 -->|"no — first save"| b6 --> b11
+  b5 -->|"yes"| b7
+  b7 -->|"no"| b9 --> b11
+  b7 -->|"yes"| b8
+  b8 -->|"yes — locked"| e2
+  b8 -->|"no — first time"| b10 --> b11
+  b11 --> s1
+  b11 --> s2
+  e2 -.->|"no self-service path yet"| c1
+
+  classDef court fill:#d3f2df,stroke:#2f8a55,color:#0e2e1d
+  classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
+  classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
+  classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
+  class c1,c2,c3,c4 court
+  class b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11 system
+  class s1,s2 state
+  class e1,e2 err
+</pre>
+  </div>
+
+  <div class="notes">
+    <h2>Things worth knowing</h2>
+    <ul>
+      <li>Prices are held in kobo, not naira — ₦50.00 is <code>5000</code>.</li>
+      <li>The payout account can be set once. After that, changing it is rejected. Prices stay editable at any time.</li>
+      <li>There is no live payout or split-payment integration behind this yet; the account is stored as reference data.</li>
+      <li>Both a first save and a later update are written to the court's audit trail.</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 340 }
+  });
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  const svg = document.querySelector('.mermaid svg');
+  const natural = svg.viewBox.baseVal.width;
+  const level = document.getElementById('zlevel');
+  let z = null; // null = fit to page width
+  const current = () => svg.getBoundingClientRect().width / natural;
+  function apply() {
+    if (z === null) { svg.style.width = '100%'; svg.style.maxWidth = natural + 'px'; level.textContent = 'Fit'; }
+    else { svg.style.width = natural * z + 'px'; svg.style.maxWidth = 'none'; level.textContent = Math.round(z * 100) + '%'; }
+  }
+  document.getElementById('zfit').onclick = () => { z = null; apply(); };
+  document.getElementById('z100').onclick = () => { z = 1; apply(); };
+  document.getElementById('zin').onclick = () => { z = Math.min(2.5, (z ?? current()) * 1.25); apply(); };
+  document.getElementById('zout').onclick = () => { z = Math.max(0.2, (z ?? current()) * 0.8); apply(); };
+  apply();
+</script>
+</body>
+</html>

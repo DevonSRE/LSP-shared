@@ -577,7 +577,7 @@ components:
       enum: [DRAFT, PUBLISHED, ARCHIVED]
       description: >
         A plan is created DRAFT, becomes PUBLISHED (selectable by courts)
-        via the publish endpoint, and can be moved to ARCHIVED — which
+        via POST /court/subscription-plans/{id}?action=publish, and can be moved to ARCHIVED — which
         stops new selection without force-migrating existing subscribers.
 
     SubscriptionRenewal:
@@ -650,12 +650,14 @@ components:
           type: integer
           format: int64
           nullable: true
-        pending_approval:
-          type: boolean
+        created_by:
+          allOf:
+            - $ref: "#/components/schemas/UserSummary"
+          nullable: true
           description: >
-            True while this plan is priced above the publish-approval
-            threshold (₦200,000) and awaiting a second, different
-            Platform Admin to confirm publishing.
+            Snapshot of the Platform Admin who created (or duplicated) the
+            plan, taken at that moment — it does not follow later changes
+            to that user. Absent for plans created before this field existed.
         created_at:
           type: string
           format: date-time
@@ -1808,7 +1810,7 @@ paths:
       summary: Create a subscription plan
       description: >
         Platform Admin only. Always creates a DRAFT — not selectable by
-        any court until published. Editing an existing plan's price
+        any court until published (POST /court/subscription-plans/{id}?action=publish). Editing an existing plan's price
         (PATCH /court/subscription-plans/{id}) never retroactively
         changes an already-locked-in subscription's fee — only future
         subscribe/renew actions use a new price.
@@ -1853,8 +1855,8 @@ paths:
       summary: Edit a plan's name/price/cycle/waiver fields
       description: >
         Platform Admin only. Does not change status — a DRAFT stays
-        DRAFT, a PUBLISHED plan stays PUBLISHED. Use the publish/archive
-        endpoints for status transitions.
+        DRAFT, a PUBLISHED plan stays PUBLISHED. Use POST with the
+        `action` query parameter for status changes.
       parameters:
         - name: id
           in: path
@@ -1881,17 +1883,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
-
-  /court/subscription-plans/{id}/publish:
     post:
       tags: [Court Subscription Billing]
-      summary: Publish a plan (make it selectable)
+      summary: Publish or archive a plan
       description: >
-        Platform Admin only. Idempotent for an already-published plan.
-        Plans priced above ₦200,000 need a second call from a
-        *different* Platform Admin — the first call records the request
-        and returns pending_approval: true, still DRAFT; the same admin
-        calling again is rejected.
+        Platform Admin only. The action is chosen with the required
+        `action` query parameter — it is not part of the path.
+
+
+        `action=publish` makes a plan selectable by courts. It is a
+        single call from a single Platform Admin at any price (there is
+        no approval step), and is idempotent for an already-published
+        plan.
+
+
+        `action=archive` stops new selection — by any court, including one
+        switching plans — without force-migrating existing subscribers,
+        who may still renew the same archived plan.
+
+
+        `action=duplicate` copies the plan (name with a " (Copy)" suffix,
+        price, cycle and waiver fields) into a new DRAFT plan, returned
+        with 201. Works on a plan in any status. The new plan's
+        `created_by` is the admin who duplicated it.
       parameters:
         - name: id
           in: path
@@ -1899,74 +1913,60 @@ paths:
           schema:
             type: integer
             format: int64
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [publish, archive, duplicate]
       responses:
         "200":
-          description: Plan published, or awaiting a second approver (check pending_approval)
+          description: Plan published or archived
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
-        "400":
-          description: Plan not found, or the same admin tried to confirm their own request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GenericResponse"
-
-  /court/subscription-plans/{id}/archive:
-    post:
-      tags: [Court Subscription Billing]
-      summary: Archive a plan
-      description: >
-        Platform Admin only. Stops new selection (by any court, including
-        one switching plans) — does not force-migrate existing
-        subscribers, who may still renew the same archived plan.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "200":
-          description: Plan archived
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
-        "400":
-          description: Plan not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GenericResponse"
-
-  /court/subscription-plans/{id}/duplicate:
-    post:
-      tags: [Court Subscription Billing]
-      summary: Duplicate a plan as a new draft
-      description: Platform Admin only. Copies name (with a " (Copy)" suffix), price, cycle, and waiver fields into a new DRAFT plan.
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
         "201":
-          description: New draft plan created
+          description: "`action=duplicate` — the new draft plan"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/CourtSubscriptionPlanResponse"
         "400":
-          description: Source plan not found
+          description: Missing or unknown action, or plan not found (for duplicate, source plan not found)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/GenericResponse"
+    delete:
+      tags: [Court Subscription Billing]
+      summary: Delete a draft plan
+      description: >
+        Platform Admin only. Only a DRAFT plan can be deleted (soft
+        delete). A plan that has been published — even if archived since —
+        can only be archived, because courts, invoices and audit history
+        may already point at it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Plan deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+        "400":
+          description: Plan not found, or the plan is not a draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericResponse"
+
 
   /court/subscription:
     get:

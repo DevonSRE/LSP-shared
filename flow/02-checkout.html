@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subscription Checkout Flow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Subscription checkout</div>
+  <h1>Subscription checkout — pay once per cycle</h1>
+  <p class="sub">A court picks a plan, pays on Paystack, and is confirmed on return. Every box shows the endpoint it calls (base path <code>/api/v1</code>). The backend starts the Paystack transaction itself and never trusts an amount or plan sent back from the browser.</p>
+  <div class="audience">
+    <span class="label">Used by</span> <span class="aud court">Court Admin</span><span class="aud-role">picks a plan and pays for it</span>
+  </div>
+  <div class="audience" style="margin-top:-6px">Court Admin means a Judge, Legal Aide or Registrar. </div>
+
+
+  <div class="legend">
+    <span><i class="dot court"></i>Court Admin</span>
+    <span><i class="dot system"></i>JudicAI backend</span>
+    <span><i class="dot paystack"></i>Paystack</span>
+    <span><i class="dot state"></i>Result state</span>
+    <span><i class="dot err"></i>Rejected</span>
+  </div>
+
+  <div class="zoom" aria-label="Zoom">
+    <button id="zfit" type="button">Fit</button>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="level" id="zlevel">Fit</span>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="z100" type="button">100%</button>
+  </div>
+
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TD
+  c1["&lt;b&gt;1. Browse plans&lt;/b&gt;&lt;br/&gt;GET /court/subscription-plans"]
+  c2["&lt;b&gt;2. Check current status&lt;/b&gt;&lt;br/&gt;GET /court/subscription"]
+  c3["&lt;b&gt;3. Pay now&lt;/b&gt;&lt;br/&gt;POST /court/subscription/checkout&lt;br/&gt;body: plan_id"]
+  c4["&lt;b&gt;6. Back on JudicAI&lt;/b&gt;&lt;br/&gt;POST /court/subscription/verify&lt;br/&gt;body: reference"]
+  c5["&lt;b&gt;8. See result&lt;/b&gt;&lt;br/&gt;GET /court/subscription"]
+  c6["Try again — new checkout,&lt;br/&gt;fresh Paystack link every time&lt;br/&gt;POST /court/subscription/checkout"]
+
+  b1["Plan found and selectable?"]
+  b2["Create PENDING invoice&lt;br/&gt;(kept even if abandoned)"]
+  b3["Ask Paystack to initialise&lt;br/&gt;amount = plan price, in kobo"]
+  b4["Invoice already PAID?"]
+  b5{"Paystack says success?"}
+  b6{"Amount equals invoice amount?"}
+  b7["Invoice → PAID&lt;br/&gt;paid_via = PAYSTACK_ONE_TIME"]
+  b8{"Court already subscribed?"}
+  b9["Create subscription&lt;br/&gt;next_billing_date = now + cycle"]
+  b10["Extend subscription&lt;br/&gt;from current end date, not from today"]
+  b11["Save reusable card if Paystack returned one&lt;br/&gt;(has_saved_card = true)"]
+  e1["400: plan not found / not available"]
+  e2["400: payment not completed"]
+  e3["400: amount does not match"]
+  e4["400: no payment for this reference"]
+
+  p1["POST /transaction/initialize&lt;br/&gt;returns authorization_url"]
+  p2["Hosted checkout page&lt;br/&gt;(external — no JudicAI endpoint)"]
+  p3["GET /transaction/verify/{reference}"]
+
+  r1(["Subscription ACTIVE"])
+  r2(["Invoice stays PENDING"])
+
+  c1 --> c2 --> c3 --> b1
+  b1 -->|"no"| e1
+  b1 -->|"yes"| b2 --> b3 --> p1
+  p1 -->|"authorization_url + reference"| c3
+  c3 -->|"4. redirect the court"| p2
+  p2 -->|"court abandons"| r2
+  r2 -.-> c6
+  c6 -.-> b1
+  p2 -->|"5. court pays; Paystack redirects to&lt;br/&gt;COURT_BILLING_CALLBACK_URL?reference=..."| c4
+  c4 --> b4
+  b4 -->|"yes — reload or double call"| c5
+  b4 -->|"not found"| e4
+  b4 -->|"no"| p3
+  p3 --> b5
+  b5 -->|"no"| e2
+  b5 -->|"yes"| b6
+  b6 -->|"no"| e3
+  b6 -->|"yes"| b7 --> b8
+  b8 -->|"no"| b9
+  b8 -->|"yes"| b10
+  b9 --> b11
+  b10 --> b11
+  b11 --> r1 --> c5
+  e2 -.->|"court can retry"| c6
+
+  classDef court fill:#d3f2df,stroke:#2f8a55,color:#0e2e1d
+  classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
+  classDef paystack fill:#e5d9ff,stroke:#6b4cc4,color:#241452
+  classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
+  classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
+  class c1,c2,c3,c4,c5,c6 court
+  class b1,b2,b3,b4,b5,b6,b7,b8,b9,b10,b11 system
+  class p1,p2,p3 paystack
+  class r1,r2 state
+  class e1,e2,e3,e4 err
+</pre>
+  </div>
+
+  <div class="notes">
+    <h2>Things worth knowing</h2>
+    <ul>
+      <li>Verify is safe to call twice. A second call for a reference that's already paid returns the current subscription and changes nothing.</li>
+      <li>Renewing early adds a cycle on top of the existing end date, so no paid time is lost.</li>
+      <li>Every successful payment quietly stores a reusable card when Paystack provides one. That's what later lets the court switch on auto-renew — see the <a href="03-recurring.html">recurring billing</a> flow.</li>
+      <li>A non-published plan can only be checked out by a court that's already on that exact plan (renewal). See the <a href="platform-admin-plans-workflow.html">plans workflow</a>.</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 340 }
+  });
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  const svg = document.querySelector('.mermaid svg');
+  const natural = svg.viewBox.baseVal.width;
+  const level = document.getElementById('zlevel');
+  let z = null; // null = fit to page width
+  const current = () => svg.getBoundingClientRect().width / natural;
+  function apply() {
+    if (z === null) { svg.style.width = '100%'; svg.style.maxWidth = natural + 'px'; level.textContent = 'Fit'; }
+    else { svg.style.width = natural * z + 'px'; svg.style.maxWidth = 'none'; level.textContent = Math.round(z * 100) + '%'; }
+  }
+  document.getElementById('zfit').onclick = () => { z = null; apply(); };
+  document.getElementById('z100').onclick = () => { z = 1; apply(); };
+  document.getElementById('zin').onclick = () => { z = Math.min(2.5, (z ?? current()) * 1.25); apply(); };
+  document.getElementById('zout').onclick = () => { z = Math.max(0.2, (z ?? current()) * 0.8); apply(); };
+  apply();
+</script>
+</body>
+</html>

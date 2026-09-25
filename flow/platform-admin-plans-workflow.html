@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform Admin — Plans Workflow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Platform Admin plans workflow</div>
+  <h1>Platform Admin — plans workflow</h1>
+  <p class="sub">How a Platform Admin creates, edits, publishes, duplicates, archives and deletes a subscription plan. Every box shows the endpoint it calls (base path <code>/api/v1</code>). What a court does with a published plan is in the <a href="02-checkout.html">checkout</a> flowchart.</p>
+  <div class="audience">
+    <span class="label">Used by</span> <span class="aud admin">Platform Admin</span><span class="aud-role">the only user category that manages plans</span>
+  </div>
+
+
+  <div class="legend">
+    <span><i class="dot admin"></i>Platform Admin</span>
+    <span><i class="dot state"></i>Plan status</span>
+    <span><i class="dot err"></i>Rejected</span>
+  </div>
+
+  <div class="zoom" aria-label="Zoom">
+    <button id="zfit" type="button">Fit</button>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="level" id="zlevel">Fit</span>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="z100" type="button">100%</button>
+  </div>
+
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TD
+  a1["&lt;b&gt;Create plan&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans&lt;br/&gt;name, price, billing_cycle,&lt;br/&gt;optional waiver fields"]
+  a0["&lt;b&gt;Review every plan&lt;/b&gt;&lt;br/&gt;GET /court/subscription-plans/admin&lt;br/&gt;(draft, published and archived)"]
+  a2["&lt;b&gt;Edit plan&lt;/b&gt;&lt;br/&gt;PATCH /court/subscription-plans/{id}"]
+  a3["&lt;b&gt;Publish&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans/{id}?action=publish"]
+  a4["&lt;b&gt;Archive&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans/{id}?action=archive"]
+  a5["&lt;b&gt;Duplicate&lt;/b&gt;&lt;br/&gt;POST /court/subscription-plans/{id}?action=duplicate"]
+  a6["&lt;b&gt;Delete&lt;/b&gt;&lt;br/&gt;DELETE /court/subscription-plans/{id}"]
+
+  sDraft(["DRAFT"])
+  sPub(["PUBLISHED"])
+  sArch(["ARCHIVED"])
+  sGone(["Deleted"])
+
+  d1{"Is the plan a DRAFT?"}
+  n1["No change — already published"]
+  e1["400: only a draft plan can be deleted.&lt;br/&gt;Archive it instead"]
+  e2["400: 'action' is required and must be&lt;br/&gt;publish, archive or duplicate"]
+
+  a1 -->|"always starts as a draft"| sDraft
+  a0 -.->|"pick a plan"| a2
+  a2 -.->|"status unchanged"| sDraft
+  a2 -.->|"status unchanged"| sPub
+
+  sDraft --> a3
+  a3 -->|"one call, any price, no approval"| sPub
+  sPub -.->|"publish again"| n1
+  a3 -.->|"missing or unknown action"| e2
+
+  sPub --> a4
+  sDraft -.-> a4
+  a4 -->|"stops new selection; existing subscribers may still renew"| sArch
+
+  sDraft --> a5
+  sPub --> a5
+  sArch --> a5
+  a5 -->|"new copy, named '... (Copy)'"| sDraft
+
+  sDraft --> a6
+  sPub --> a6
+  sArch --> a6
+  a6 --> d1
+  d1 -->|"yes"| sGone
+  d1 -->|"no"| e1
+
+  classDef admin fill:#cfe3ff,stroke:#3b6fb6,color:#10233f
+  classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
+  classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
+  classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
+  class a0,a1,a2,a3,a4,a5,a6 admin
+  class sDraft,sPub,sArch,sGone state
+  class d1,n1 system
+  class e1,e2 err
+</pre>
+  </div>
+
+  <div class="notes">
+    <h2>Things worth knowing</h2>
+    <ul>
+      <li>Every step on this page is Platform Admin only.</li>
+      <li>Publish, archive and duplicate are one endpoint with a required <code>action</code> query parameter, not separate URLs.</li>
+      <li>Create and duplicate record who did it: the plan's <code>created_by</code> is a snapshot of that admin.</li>
+      <li>Publishing is a single call at any price. There is no second-admin approval.</li>
+      <li>Only a draft can be deleted. Once a plan has been published, it can only be archived, because courts and invoices may already point at it.</li>
+      <li>Editing a price never changes what a court has already been charged this cycle; the new price applies from its next renewal.</li>
+      <li>Archiving never moves anyone off a plan. A court already on an archived plan can still renew it; nobody else can newly pick it.</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 340 }
+  });
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  const svg = document.querySelector('.mermaid svg');
+  const natural = svg.viewBox.baseVal.width;
+  const level = document.getElementById('zlevel');
+  let z = null; // null = fit to page width
+  const current = () => svg.getBoundingClientRect().width / natural;
+  function apply() {
+    if (z === null) { svg.style.width = '100%'; svg.style.maxWidth = natural + 'px'; level.textContent = 'Fit'; }
+    else { svg.style.width = natural * z + 'px'; svg.style.maxWidth = 'none'; level.textContent = Math.round(z * 100) + '%'; }
+  }
+  document.getElementById('zfit').onclick = () => { z = null; apply(); };
+  document.getElementById('z100').onclick = () => { z = 1; apply(); };
+  document.getElementById('zin').onclick = () => { z = Math.min(2.5, (z ?? current()) * 1.25); apply(); };
+  document.getElementById('zout').onclick = () => { z = Math.max(0.2, (z ?? current()) * 0.8); apply(); };
+  apply();
+</script>
+</body>
+</html>

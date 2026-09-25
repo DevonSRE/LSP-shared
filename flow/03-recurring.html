@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recurring Billing Flow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Recurring billing</div>
+  <h1>Recurring billing — auto-renewal, retries and grace</h1>
+  <p class="sub">A court switches on auto-renewal once, then a daily job charges its saved card. Paystack reports the outcome through a webhook, which is the only thing that can mark an automatic charge paid. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
+  <div class="audience">
+    <span class="label">Used by</span> <span class="aud court">Court Admin</span><span class="aud-role">turns auto-renew on or off</span> <span class="aud admin">Platform Admin</span><span class="aud-role">can settle a failed charge by hand</span>
+  </div>
+  <div class="audience" style="margin-top:-6px">Court Admin means a Judge, Legal Aide or Registrar. </div>
+
+
+  <div class="legend">
+    <span><i class="dot court"></i>Court Admin</span>
+    <span><i class="dot admin"></i>Platform Admin</span>
+    <span><i class="dot system"></i>System / cron</span>
+    <span><i class="dot paystack"></i>Paystack</span>
+    <span><i class="dot state"></i>Subscription state</span>
+    <span><i class="dot err"></i>Rejected</span>
+    <span><i class="dot todo"></i>Not built yet</span>
+  </div>
+
+  <div class="zoom" aria-label="Zoom">
+    <button id="zfit" type="button">Fit</button>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="level" id="zlevel">Fit</span>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="z100" type="button">100%</button>
+  </div>
+
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TD
+  c1["&lt;b&gt;1. Check for a saved card&lt;/b&gt;&lt;br/&gt;GET /court/subscription&lt;br/&gt;look at has_saved_card"]
+  c2["&lt;b&gt;2. Turn on auto-renew&lt;/b&gt;&lt;br/&gt;POST /court/subscription/renewal-mode&lt;br/&gt;body: renewal_mode = AUTO"]
+  c3["&lt;b&gt;Turn it off again&lt;/b&gt;&lt;br/&gt;POST /court/subscription/renewal-mode&lt;br/&gt;body: renewal_mode = MANUAL"]
+  c4["&lt;b&gt;Pay by hand at any time&lt;/b&gt;&lt;br/&gt;POST /court/subscription/checkout&lt;br/&gt;then POST /court/subscription/verify"]
+
+  k1["&lt;b&gt;3. Billing cycle, 07:00&lt;/b&gt;&lt;br/&gt;cron, no endpoint&lt;br/&gt;AUTO, ACTIVE or GRACE,&lt;br/&gt;next_billing_date reached"]
+  k2{"retry_count below 3?"}
+  k3["Create PENDING invoice&lt;br/&gt;amount = current plan price"]
+  k4["Skip — stays GRACE"]
+
+  p1["&lt;b&gt;4. Charge the saved card&lt;/b&gt;&lt;br/&gt;POST /transaction/charge_authorization&lt;br/&gt;(reply is ignored)"]
+  p2["&lt;b&gt;5. Webhook&lt;/b&gt;&lt;br/&gt;charge.success or charge.failed"]
+
+  w1["&lt;b&gt;6. Receive webhook&lt;/b&gt;&lt;br/&gt;POST /public/court-billing/paystack/webhook&lt;br/&gt;no login — signature is the trust"]
+  w2{"X-Paystack-Signature valid?"}
+  w3{"Which event?"}
+  w4{"Invoice already PAID?"}
+  w5{"Amount matches?"}
+  w6["Invoice → PAID (PAYSTACK_RECURRING)&lt;br/&gt;extend subscription, retry_count = 0"]
+  w7["Invoice → OVERDUE&lt;br/&gt;retry_count + 1"]
+  e1["400: invalid signature"]
+  e2["400: amount mismatch"]
+  n1["Ignored — no-op"]
+  e3["400: no saved card on file"]
+
+  s1(["ACTIVE"])
+  s2(["GRACE"])
+  s3(["SUSPENDED + case lockout"])
+
+  a1["&lt;b&gt;Manual rescue&lt;/b&gt;&lt;br/&gt;POST /court/invoices/{id}/mark-paid"]
+
+  c1 --> c2
+  c2 -->|"no saved card"| e3
+  e3 -.->|"pay once first"| c4
+  c4 -->|"card captured"| c1
+  c2 -->|"saved card exists"| k1
+  c3 -.-> n2["Daily job no longer picks this court up&lt;br/&gt;(back to paying by hand)"]
+
+  k1 --> k2
+  k2 -->|"yes"| k3 --> p1
+  k2 -->|"no"| k4
+  k4 --> s2
+  p1 -.->|"async"| p2
+  p2 --> w1 --> w2
+  w2 -->|"no"| e1
+  w2 -->|"yes"| w3
+  w3 -->|"charge.success"| w4
+  w3 -->|"charge.failed"| w7
+  w3 -->|"anything else"| n1
+  w4 -->|"yes"| n1
+  w4 -->|"no"| w5
+  w5 -->|"no"| e2
+  w5 -->|"yes"| w6 --> s1
+  w7 --> s2
+  s2 -->|"next day's cron retries"| k1
+  s2 -.->|"paid by hand or by admin"| a1
+  a1 --> s1
+  c4 -.->|"court pays by hand"| s1
+  s2 -.->|"grace expires with no payment"| s3
+  s3 -.->|"payment received"| s1
+
+  classDef admin fill:#cfe3ff,stroke:#3b6fb6,color:#10233f
+  classDef court fill:#d3f2df,stroke:#2f8a55,color:#0e2e1d
+  classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
+  classDef paystack fill:#e5d9ff,stroke:#6b4cc4,color:#241452
+  classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
+  classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
+  classDef todo fill:#ffffff,stroke:#c98a10,stroke-dasharray:5 4,color:#3d2a00
+  class a1 admin
+  class c1,c2,c3,c4 court
+  class k1,k2,k3,k4,w1,w2,w3,w4,w5,w6,w7,n1,n2 system
+  class p1,p2 paystack
+  class s1,s2 state
+  class e1,e2,e3 err
+  class s3 todo
+</pre>
+  </div>
+
+  <div class="notes">
+    <h2>Things worth knowing</h2>
+    <ul>
+      <li>Turning on auto-renew never charges the court. It only reuses a card saved from an earlier payment, so a court has to pay once by hand first.</li>
+      <li>The immediate reply from Paystack's charge call is deliberately ignored. Only the signed webhook can mark the invoice paid, so one payment can never be applied by two code paths.</li>
+      <li>Retries stop after 3 failed attempts and the subscription stays in <code>GRACE</code>. That limit is a fixed value for now.</li>
+      <li>The dashed <b>SUSPENDED</b> box is not built yet. Nothing currently moves a subscription out of <code>GRACE</code> automatically, and nothing restricts case access. That's the Dunning work.</li>
+      <li>A network failure calling Paystack doesn't count as a failed attempt; the subscription is simply picked up again on the next daily run.</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 340 }
+  });
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  const svg = document.querySelector('.mermaid svg');
+  const natural = svg.viewBox.baseVal.width;
+  const level = document.getElementById('zlevel');
+  let z = null; // null = fit to page width
+  const current = () => svg.getBoundingClientRect().width / natural;
+  function apply() {
+    if (z === null) { svg.style.width = '100%'; svg.style.maxWidth = natural + 'px'; level.textContent = 'Fit'; }
+    else { svg.style.width = natural * z + 'px'; svg.style.maxWidth = 'none'; level.textContent = Math.round(z * 100) + '%'; }
+  }
+  document.getElementById('zfit').onclick = () => { z = null; apply(); };
+  document.getElementById('z100').onclick = () => { z = 1; apply(); };
+  document.getElementById('zin').onclick = () => { z = Math.min(2.5, (z ?? current()) * 1.25); apply(); };
+  document.getElementById('zout').onclick = () => { z = Math.max(0.2, (z ?? current()) * 0.8); apply(); };
+  apply();
+</script>
+</body>
+</html>

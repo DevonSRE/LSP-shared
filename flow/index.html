@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JudicAI Flowcharts</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>JudicAI flowcharts</h1>
+  <p class="sub">One flowchart per feature. Each stage names the endpoint it calls, so a designer, tester or engineer can follow a journey from the first screen to the last API call. Endpoints are relative to <code>/api/v1</code>; the full contract lives in <code>../openapi.yaml</code>.</p>
+
+  <div class="audience" style="margin-top:4px"><span class="label">Who uses what</span> <span class="aud admin">Platform Admin</span><span class="aud-role">Devon staff who run the platform</span> <span class="aud court">Court Admin</span><span class="aud-role">a Judge, Legal Aide or Registrar working for one court</span></div>
+
+  <h2 class="section-title">Start here</h2>
+  <div class="grid">
+    <a class="card" href="00-overview.html">
+      <span class="chip built">BUILT</span>
+      <h3>Overview — all billing at once</h3>
+      <p>Plans, checkout, recurring charges, invoices and payment settings on a single page, showing how they feed each other.</p>
+      <div class="aud-row"><span class="aud admin">Platform Admin</span><span class="aud court">Court Admin</span></div>
+      <div class="meta">20 endpoints · 2 daily jobs</div>
+    </a>
+  </div>
+
+  <h2 class="section-title">Court billing (Devon → Court)</h2>
+  <div class="grid">
+    <a class="card" href="platform-admin-plans-workflow.html">
+      <span class="chip built">BUILT</span>
+      <h3>Platform Admin — plans workflow</h3>
+      <p>Create, edit, publish, duplicate, archive and delete subscription plans. Publishing is one call, and only drafts can be deleted.</p>
+      <div class="aud-row"><span class="aud admin">Platform Admin</span></div>
+      <div class="meta">6 endpoints</div>
+    </a>
+    <a class="card" href="02-checkout.html">
+      <span class="chip built">BUILT</span>
+      <h3>Subscription checkout</h3>
+      <p>A court picks a plan, pays on Paystack and is confirmed on return. Safe to retry, amount-checked.</p>
+      <div class="aud-row"><span class="aud court">Court Admin</span></div>
+      <div class="meta">4 endpoints </div>
+    </a>
+    <a class="card" href="03-recurring.html">
+      <span class="chip built">BUILT</span>
+      <h3>Recurring billing</h3>
+      <p>Auto-renewal, the daily charge job, the Paystack webhook, retries and the grace state.</p>
+      <div class="aud-row"><span class="aud court">Court Admin</span><span class="aud admin">Platform Admin</span></div>
+      <div class="meta">2 endpoints · daily cron · webhook</div>
+    </a>
+    <a class="card" href="04-invoices.html">
+      <span class="chip built">BUILT</span>
+      <h3>Invoices</h3>
+      <p>Ad-hoc invoices, reminders, manual mark-paid, waivers and receipts.</p>
+      <div class="aud-row"><span class="aud admin">Platform Admin</span><span class="aud court">Court Admin</span></div>
+      <div class="meta">6 endpoints </div>
+    </a>
+    <div class="card planned">
+      <span class="chip planned">PLANNED</span>
+      <h3>Dunning &amp; suspension</h3>
+      <p>Admin-set reminder, grace and retry rules, plus what a suspended court can and can't do. Not built yet, so no flowchart.</p>
+      <div class="meta">—</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">Court → Lawyer</h2>
+  <div class="grid">
+    <a class="card" href="05-payment-config.html">
+      <span class="chip built">BUILT</span>
+      <h3>Payment configuration</h3>
+      <p>Price per page, CTC price and the one-time payout account.</p>
+      <div class="aud-row"><span class="aud court">Court Admin</span></div>
+      <div class="meta">2 endpoints </div>
+    </a>
+  </div>
+
+  <div class="notes" style="margin-top:32px">
+    <h2>Adding a flowchart</h2>
+    <ul>
+      <li>Copy any existing file in this folder, keep the same <code>&lt;head&gt;</code> and script block, and replace the diagram inside <code>&lt;pre class="mermaid"&gt;</code>.</li>
+      <li>Give every stage box its endpoint, e.g. <code>POST /court/invoices</code>. Use the same colours: blue Platform Admin, green Court Admin, purple Paystack/external, grey System, amber state, red rejection, dashed for not built.</li>
+      <li>Add a "Used by" row under the title with the <code>Platform Admin</code> and/or <code>Court Admin</code> badge, and the same badges on the index card.</li>
+      <li>Number files in order (<code>06-…html</code>) and add a card above.</li>
+      <li>Diagrams render with Mermaid loaded from a CDN, so open these with an internet connection.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

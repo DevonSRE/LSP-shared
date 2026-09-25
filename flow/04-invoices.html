@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoices Flow</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb"><a href="index.html">Flowcharts</a> / Invoices</div>
+  <h1>Invoices — raising, reminding, settling, waiving</h1>
+  <p class="sub">Invoices come from two places: automatically, every time a court pays or is charged, and by hand when a Platform Admin bills a court outside its normal cycle. Every box shows the endpoint it calls (base path <code>/api/v1</code>).</p>
+  <div class="audience">
+    <span class="label">Used by</span> <span class="aud admin">Platform Admin</span><span class="aud-role">raises, reminds, marks paid and waives</span> <span class="aud court">Court Admin</span><span class="aud-role">views their own invoices and receipts</span>
+  </div>
+  <div class="audience" style="margin-top:-6px">Court Admin means a Judge, Legal Aide or Registrar. </div>
+
+
+  <div class="legend">
+    <span><i class="dot admin"></i>Platform Admin</span>
+    <span><i class="dot court"></i>Court Admin</span>
+    <span><i class="dot system"></i>JudicAI backend</span>
+    <span><i class="dot state"></i>Invoice status</span>
+    <span><i class="dot err"></i>Rejected</span>
+  </div>
+
+  <div class="zoom" aria-label="Zoom">
+    <button id="zfit" type="button">Fit</button>
+    <button id="zout" type="button" aria-label="Zoom out">−</button>
+    <span class="level" id="zlevel">Fit</span>
+    <button id="zin" type="button" aria-label="Zoom in">+</button>
+    <button id="z100" type="button">100%</button>
+  </div>
+
+  <div class="canvas">
+<pre class="mermaid">
+flowchart TD
+  o1["Court checks out or is auto-charged&lt;br/&gt;POST /court/subscription/checkout · daily billing cron"]
+  o2["&lt;b&gt;Raise ad-hoc invoice&lt;/b&gt;&lt;br/&gt;POST /court/invoices&lt;br/&gt;court_id, period, amount, due_date"]
+  sOpen(["PENDING / OVERDUE"])
+  sPaid(["PAID"])
+  sW(["WAIVED"])
+
+  c1["&lt;b&gt;See my invoices&lt;/b&gt;&lt;br/&gt;GET /court/invoices"]
+  c2["&lt;b&gt;Get a receipt&lt;/b&gt;&lt;br/&gt;GET /court/invoices/{id}/receipt"]
+  a1["&lt;b&gt;Send a reminder&lt;/b&gt;&lt;br/&gt;POST /court/invoices/{id}/remind"]
+  a2["&lt;b&gt;Mark paid&lt;/b&gt;&lt;br/&gt;POST /court/invoices/{id}/mark-paid"]
+  a3["&lt;b&gt;Waive&lt;/b&gt;&lt;br/&gt;POST /court/invoices/{id}/waive&lt;br/&gt;body: reason"]
+
+  b2{"Court has a billing email&lt;br/&gt;from a past payment?"}
+  b3["Email sent, logged to audit trail"]
+  b4{"Tied to a subscription?"}
+  b5["Subscription reactivated / extended&lt;br/&gt;exactly like a Paystack charge"]
+  b6["Only the invoice changes"]
+  b8{"Belongs to my court&lt;br/&gt;(or caller is Platform Admin)?"}
+
+  e1["400: only pending or overdue can be reminded"]
+  e2["400: no billing contact on file yet"]
+  e3["400: a waived invoice can't be marked paid"]
+  e4["400: can't waive a paid invoice"]
+  e5["400: invoice not found&lt;br/&gt;(same answer for another court's invoice)"]
+  e6["400: only a paid invoice has a receipt"]
+
+  o1 --> sOpen
+  o2 --> sOpen
+  sOpen --> c1
+  sOpen --> a1
+  sOpen --> a2
+  sOpen --> a3
+  c1 -.->|"pick one"| c2
+
+  a1 --> b2
+  a1 -.->|"not open"| e1
+  b2 -->|"no"| e2
+  b2 -->|"yes"| b3
+
+  a2 --> b4
+  a2 -.->|"already PAID: no-op, safe to click twice"| sPaid
+  a2 -.->|"waived"| e3
+  b4 -->|"yes"| b5 --> sPaid
+  b4 -->|"no — ad-hoc"| b6 --> sPaid
+
+  a3 -->|"reason recorded, amount set to 0"| sW
+  a3 -.->|"already paid"| e4
+
+  c2 --> b8
+  b8 -->|"no"| e5
+  b8 -->|"yes, and PAID"| sPaid
+  b8 -.->|"yes, but not paid"| e6
+
+  classDef admin fill:#cfe3ff,stroke:#3b6fb6,color:#10233f
+  classDef court fill:#d3f2df,stroke:#2f8a55,color:#0e2e1d
+  classDef system fill:#e6e8ec,stroke:#6b7280,color:#1f2937
+  classDef state fill:#ffe9b8,stroke:#c98a10,color:#3d2a00
+  classDef err fill:#ffd5d5,stroke:#c0392b,color:#4a0f0f
+  class o2,a1,a2,a3 admin
+  class c1,c2 court
+  class o1,b2,b3,b4,b5,b6,b8 system
+  class sOpen,sPaid,sW state
+  class e1,e2,e3,e4,e5,e6 err
+</pre>
+  </div>
+
+  <div class="notes">
+    <h2>Things worth knowing</h2>
+    <ul>
+      <li>Raising, reminding, marking paid and waiving are Platform Admin only. Listing and receipts are open to court users, scoped to their own court.</li>
+      <li>Marking an invoice paid that belongs to a subscription reactivates and extends that subscription the same way a successful Paystack payment does — the logic isn't duplicated.</li>
+      <li>Reminders only work for a court that has paid at least once, because the recipient is the email captured from its last successful payment. There's no wider lookup of court staff yet.</li>
+      <li>The receipt endpoint returns the invoice details. It doesn't generate a downloadable PDF.</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: dark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 40, wrappingWidth: 220 }
+  });
+  await mermaid.run({ querySelector: '.mermaid' });
+
+  const svg = document.querySelector('.mermaid svg');
+  const natural = svg.viewBox.baseVal.width;
+  const level = document.getElementById('zlevel');
+  let z = null; // null = fit to page width
+  const current = () => svg.getBoundingClientRect().width / natural;
+  function apply() {
+    if (z === null) { svg.style.width = '100%'; svg.style.maxWidth = natural + 'px'; level.textContent = 'Fit'; }
+    else { svg.style.width = natural * z + 'px'; svg.style.maxWidth = 'none'; level.textContent = Math.round(z * 100) + '%'; }
+  }
+  document.getElementById('zfit').onclick = () => { z = null; apply(); };
+  document.getElementById('z100').onclick = () => { z = 1; apply(); };
+  document.getElementById('zin').onclick = () => { z = Math.min(2.5, (z ?? current()) * 1.25); apply(); };
+  document.getElementById('zout').onclick = () => { z = Math.max(0.2, (z ?? current()) * 0.8); apply(); };
+  apply();
+</script>
+</body>
+</html>

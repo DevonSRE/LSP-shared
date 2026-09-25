@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/judic-ai-design-system-7f424365-1a1d-4d5d-957e-e3cdf645fbd2/tokens/colors.css">
+<link rel="stylesheet" href="_ds/judic-ai-design-system-7f424365-1a1d-4d5d-957e-e3cdf645fbd2/tokens/typography.css">
+<link rel="stylesheet" href="_ds/judic-ai-design-system-7f424365-1a1d-4d5d-957e-e3cdf645fbd2/tokens/effects.css">
+<link rel="stylesheet" href="_ds/judic-ai-design-system-7f424365-1a1d-4d5d-957e-e3cdf645fbd2/components/fig-tokens.css">
+<link rel="stylesheet" href="_ds/judic-ai-design-system-7f424365-1a1d-4d5d-957e-e3cdf645fbd2/styles.css">
+<script src="_ds/judic-ai-design-system-7f424365-1a1d-4d5d-957e-e3cdf645fbd2/_ds_bundle.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font-sans);background:#F1F1F1;color:var(--color-text)}
+  a,a:hover{color:var(--color-primary)}
+  input:focus,textarea:focus,select:focus{outline:none}
+  .pa2-scroll::-webkit-scrollbar{width:8px;height:8px}
+  .pa2-scroll::-webkit-scrollbar-thumb{background:#D5D9DE;border-radius:8px}
+  .pa2-tiles{display:grid;gap:13px;grid-template-columns:repeat(5,1fr)}
+  .pa2-plans{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+  .pa2-two{display:grid;gap:14px;grid-template-columns:1.1fr 1fr}
+  .pa2-min{min-width:900px}
+  .pa2-wide{min-width:1040px}
+  .pa2-x{overflow-x:auto}
+  .pa2-burger{display:none}
+  @keyframes pa2Toast{from{transform:translateY(-10px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @media(max-width:1240px){.pa2-tiles{grid-template-columns:repeat(3,1fr)}.pa2-two{grid-template-columns:1fr}}
+  @media(max-width:980px){.pa2-plans{grid-template-columns:1fr}}
+  @media(max-width:860px){
+    .pa2-aside{position:fixed;top:0;bottom:0;left:0;z-index:70;transform:translateX(-105%);transition:transform .22s;margin:0;border-radius:0}
+    .pa2-aside-open{transform:translateX(0)}
+    .pa2-burger{display:inline-flex}
+    .pa2-tiles{grid-template-columns:repeat(2,1fr)}
+    .pa2-title{display:none}
+  }
+</style>
+</helmet>
+
+<div style="height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#F1F1F1;color:var(--color-text);font-family:var(--font-sans)">
+
+  <header style="flex:none;display:flex;align-items:center;gap:16px;height:64px;padding:0 26px;background:#fff;position:relative;z-index:20">
+    <div class="pa2-burger" onClick="{{ toggleSidebar }}" style="align-items:center;justify-content:center;width:36px;height:36px;border:1px solid var(--color-border-subtle);border-radius:10px;cursor:pointer;flex:none">
+      <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconRowStyleLinear" size="17" hint-size="17px,17px"></x-import></div>
+    <div style="display:flex;align-items:center;flex:none;width:104px;height:46px;overflow:hidden">
+      <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.JudicLogoHORNTBLK" dc-props="{{ logoWide }}" hint-size="86px,39px"></x-import>
+    </div>
+    <div class="pa2-title" style="position:absolute;left:50%;transform:translateX(-50%);font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--jud-navy-900);white-space:nowrap">JudicAI Platform Admin</div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:10px;flex:none">
+      <span style="width:34px;height:34px;border-radius:var(--radius-pill);background:#E4E7EB;display:inline-flex;align-items:center;justify-content:center;color:#8B9099">
+        <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconUserStyleBold" size="19" hint-size="19px,19px"></x-import></span>
+      <div style="line-height:1.25">
+        <div style="font-weight:700;font-size:13.5px">DevonTech Admin</div>
+        <div style="font-size:11px;color:var(--color-text-muted);letter-spacing:0.02em">PLATFORM ADMIN</div>
+      </div>
+    </div>
+  </header>
+
+  <div style="flex:1;display:flex;min-height:0;padding:14px 16px 16px;gap:16px">
+
+    <aside class="pa2-aside {{ asideOpenClass }}" style="width:170px;min-width:170px;background:#fff;border-radius:18px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;align-self:flex-start;max-height:100%;overflow-y:auto">
+      <div onClick="{{ goDash }}" style="display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;font-size:13.5px;font-weight:600;cursor:pointer;{{ navDash }}">
+        <span style="{{ icoDash }}"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconHomeAltStyleBold" size="17" hint-size="17px,17px"></x-import></span>Dashboard</div>
+      <div onClick="{{ goCourts }}" style="display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;font-size:13.5px;font-weight:600;cursor:pointer;{{ navCourts }}">
+        <span style="{{ icoCourts }}"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconBankStyleBold" size="17" hint-size="17px,17px"></x-import></span>Courts</div>
+      <div onClick="{{ goUsers }}" style="display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;font-size:13.5px;font-weight:600;cursor:pointer;{{ navUsers }}">
+        <span style="{{ icoUsers }}"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconUserStyleBold" size="17" hint-size="17px,17px"></x-import></span>Users</div>
+      <div onClick="{{ goBilling }}" style="display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;font-size:13.5px;font-weight:600;cursor:pointer;{{ navBilling }}">
+        <span style="{{ icoBilling }}"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconFileStyleBold" size="17" hint-size="17px,17px"></x-import></span><span style="flex:1">Billing</span>
+        <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.CountBadge" count="{{ atRiskCount }}" tone="danger" hint-size="19px,19px"></x-import></div>
+      <div onClick="{{ goBroadcasts }}" style="display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;font-size:13.5px;font-weight:600;cursor:pointer;{{ navBroadcasts }}">
+        <span style="{{ icoBroadcasts }}"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconPlayStyleBold" size="17" hint-size="17px,17px"></x-import></span>Broadcasts</div>
+      <div onClick="{{ goSettings }}" style="display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;font-size:13.5px;font-weight:600;cursor:pointer;{{ navSettings }}">
+        <span style="{{ icoSettings }}"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconShieldTickStyleBold" size="17" hint-size="17px,17px"></x-import></span>Settings</div>
+    </aside>
+
+    <div onClick="{{ closeSidebar }}" style="{{ backdropStyle }}"></div>
+
+    <div class="pa2-scroll" style="flex:1;min-width:0;overflow-y:auto;padding-right:4px">
+      <div style="font-weight:700;font-size:13.5px;margin:2px 0 14px">{{ crumb }}</div>
+
+      <sc-if value="{{ isDash }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="pa2-tiles">
+            <sc-for list="{{ dashTiles }}" as="t" hint-placeholder-count="5">
+              <div style="position:relative;overflow:hidden;background:var(--jud-green-700);border-radius:13px;padding:18px 20px 20px;color:#fff">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,0.16);margin-bottom:16px">
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="{{ t.icon }}" size="18" hint-size="18px,18px"></x-import></span>
+                <div style="font-size:13px;font-weight:500;opacity:.94">{{ t.label }}</div>
+                <div style="font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:-0.02em;margin-top:6px">{{ t.value }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#fff;border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:18px">Courts (61)</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="position:relative">
+                <div onClick="{{ toggleStateMenu }}" style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;background:#F4F6F8;border-radius:10px;font-size:12.5px;color:var(--color-text-secondary);cursor:pointer">{{ stateLabel }}
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronDownStyleLinear" size="14" hint-size="14px,14px"></x-import></div>
+                <sc-if value="{{ stateMenuOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;top:46px;left:0;z-index:40;background:#fff;border:1px solid var(--color-border-subtle);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.14);padding:6px;min-width:150px">
+                    <sc-for list="{{ stateOptions }}" as="o" hint-placeholder-count="5">
+                      <div onClick="{{ o.pick }}" style="padding:9px 12px;border-radius:8px;font-size:12.5px;cursor:pointer;white-space:nowrap" style-hover="background:#F4F6F8">{{ o.label }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;background:#F4F6F8;border-radius:10px;min-width:190px;color:var(--color-text-muted)">
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconSearchStyleLinear" size="15" hint-size="15px,15px"></x-import>
+                <input value="{{ courtsQ }}" onChange="{{ onCourtsQ }}" placeholder="Search for court" style="border:none;background:transparent;font-family:inherit;font-size:12.5px;width:100%;min-width:0;color:var(--color-text)" /></div>
+              <div onClick="{{ actAddCourt }}" style="width:40px;height:40px;border-radius:var(--radius-pill);background:var(--color-primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconPlusStyleBold" size="17" hint-size="17px,17px"></x-import></div>
+            </div>
+          </div>
+
+          <div class="pa2-x">
+            <div class="pa2-min">
+              <div style="display:grid;grid-template-columns:2.2fr 1.1fr 1.6fr 0.9fr 0.4fr;padding:15px 20px;background:var(--jud-green-700);color:#fff;border-radius:12px 12px 0 0;font-size:12.5px;font-weight:600">
+                <div>Court Name</div><div>Court Type</div><div>Judge</div><div>State</div><div></div>
+              </div>
+              <sc-for list="{{ courtRows }}" as="c" hint-placeholder-count="9">
+                <div onClick="{{ c.open }}" style="display:grid;grid-template-columns:2.2fr 1.1fr 1.6fr 0.9fr 0.4fr;align-items:center;padding:14px 20px;background:#fff;border-bottom:1px solid #F0F2F5;font-size:12.5px;cursor:pointer">
+                  <div style="display:flex;align-items:center;gap:11px;min-width:0"><span style="color:var(--jud-navy-900);flex:none;display:inline-flex"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconBankStyleBold" size="17" hint-size="17px,17px"></x-import></span>{{ c.name }}</div>
+                  <div style="color:var(--color-text-secondary)">{{ c.type }}</div>
+                  <div>{{ c.judge }}</div>
+                  <div>{{ c.state }}</div>
+                  <div style="text-align:right;color:var(--color-text-muted);font-weight:700;letter-spacing:1px">···</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 0 4px">
+            <span style="font-size:12.5px;color:var(--color-text-secondary);margin-right:14px">{{ pageLabel }}</span>
+            <sc-for list="{{ pages }}" as="p" hint-placeholder-count="2">
+              <span onClick="{{ p.go }}" style="min-width:34px;height:34px;padding:0 10px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ p.st }}">{{ p.n }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isCourts }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:#fff;border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:18px">Courts (61)</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="position:relative">
+                <div onClick="{{ toggleStateMenu }}" style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;background:#F4F6F8;border-radius:10px;font-size:12.5px;color:var(--color-text-secondary);cursor:pointer">{{ stateLabel }}
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronDownStyleLinear" size="14" hint-size="14px,14px"></x-import></div>
+                <sc-if value="{{ stateMenuOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;top:46px;left:0;z-index:40;background:#fff;border:1px solid var(--color-border-subtle);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.14);padding:6px;min-width:150px">
+                    <sc-for list="{{ stateOptions }}" as="o" hint-placeholder-count="5">
+                      <div onClick="{{ o.pick }}" style="padding:9px 12px;border-radius:8px;font-size:12.5px;cursor:pointer;white-space:nowrap" style-hover="background:#F4F6F8">{{ o.label }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;background:#F4F6F8;border-radius:10px;min-width:190px;color:var(--color-text-muted)">
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconSearchStyleLinear" size="15" hint-size="15px,15px"></x-import>
+                <input value="{{ courtsQ }}" onChange="{{ onCourtsQ }}" placeholder="Search for court" style="border:none;background:transparent;font-family:inherit;font-size:12.5px;width:100%;min-width:0;color:var(--color-text)" /></div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border-radius:16px;padding:16px">
+            <div class="pa2-x">
+              <div class="pa2-wide">
+                <div style="display:grid;grid-template-columns:1.5fr 1.4fr 1fr 0.8fr 0.9fr 0.7fr 0.8fr 0.9fr;gap:6px;padding:14px 12px;background:var(--jud-green-700);color:#fff;border-radius:10px;font-size:12px;font-weight:600;text-align:center">
+                  <div>Court Name</div><div>Judge Name</div><div>Court Location</div><div>No. Cases</div><div>No. Case Files</div><div>No. Users</div><div>Status</div><div>Last Used</div>
+                </div>
+                <sc-for list="{{ courtFull }}" as="c" hint-placeholder-count="10">
+                  <div style="display:grid;grid-template-columns:1.5fr 1.4fr 1fr 0.8fr 0.9fr 0.7fr 0.8fr 0.9fr;gap:6px;margin-top:6px;font-size:12.5px;text-align:center">
+                    <div style="background:#F5F7FA;border-radius:8px;padding:12px 10px">{{ c.name }}</div>
+                    <div style="background:#F5F7FA;border-radius:8px;padding:12px 10px">{{ c.judge }}</div>
+                    <div style="background:#F5F7FA;border-radius:8px;padding:12px 10px">{{ c.state }}</div>
+                    <div style="background:#F5F7FA;border-radius:8px;padding:12px 10px">{{ c.cases }}</div>
+                    <div style="background:#F5F7FA;border-radius:8px;padding:12px 10px">{{ c.files }}</div>
+                    <div style="background:#F5F7FA;border-radius:8px;padding:12px 10px">{{ c.users }}</div>
+                    <div style="background:#F5F7FA;border-radius:8px;padding:12px 10px;color:#E03131;font-weight:700;font-size:11.5px;letter-spacing:0.03em">ACTIVE</div>
+                    <div style="background:#F5F7FA;border-radius:8px;padding:12px 10px">{{ c.last }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 0 4px">
+            <span style="font-size:12.5px;color:var(--color-text-secondary);margin-right:14px">{{ pageLabel }}</span>
+            <sc-for list="{{ pages }}" as="p" hint-placeholder-count="2">
+              <span onClick="{{ p.go }}" style="min-width:34px;height:34px;padding:0 10px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ p.st }}">{{ p.n }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isUsers }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:#fff;border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:18px">Users (222)</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="position:relative">
+                <div onClick="{{ toggleTypeMenu }}" style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;background:#F4F6F8;border-radius:10px;font-size:12.5px;color:var(--color-text-secondary);cursor:pointer">{{ typeLabel }}
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronDownStyleLinear" size="14" hint-size="14px,14px"></x-import></div>
+                <sc-if value="{{ typeMenuOpen }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;top:46px;left:0;z-index:40;background:#fff;border:1px solid var(--color-border-subtle);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.14);padding:6px;min-width:150px">
+                    <sc-for list="{{ typeOptions }}" as="o" hint-placeholder-count="4">
+                      <div onClick="{{ o.pick }}" style="padding:9px 12px;border-radius:8px;font-size:12.5px;cursor:pointer;white-space:nowrap" style-hover="background:#F4F6F8">{{ o.label }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;background:#F4F6F8;border-radius:10px;min-width:180px;color:var(--color-text-muted)">
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconSearchStyleLinear" size="15" hint-size="15px,15px"></x-import>
+                <input value="{{ usersQ }}" onChange="{{ onUsersQ }}" placeholder="Search for users" style="border:none;background:transparent;font-family:inherit;font-size:12.5px;width:100%;min-width:0;color:var(--color-text)" /></div>
+              <div onClick="{{ actAddUser }}" style="width:40px;height:40px;border-radius:10px;background:var(--jud-green-700);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconPlusStyleBold" size="17" hint-size="17px,17px"></x-import></div>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:16px;padding:16px">
+            <div class="pa2-x">
+              <div class="pa2-min">
+                <div style="display:grid;grid-template-columns:1.6fr 1.9fr 1.1fr 1fr 1fr 0.8fr;padding:14px 16px;background:var(--jud-green-700);color:#fff;border-radius:10px;font-size:12px;font-weight:600">
+                  <div>Full Name</div><div style="text-align:center">Email</div><div style="text-align:center">Phone Number</div><div style="text-align:center">User Type</div><div style="text-align:center">Date Created</div><div style="text-align:center">Status</div>
+                </div>
+                <sc-for list="{{ userRows }}" as="u" hint-placeholder-count="8">
+                  <div style="display:grid;grid-template-columns:1.6fr 1.9fr 1.1fr 1fr 1fr 0.8fr;align-items:center;padding:13px 16px;border-bottom:1px solid #F0F2F5;font-size:12.5px">
+                    <div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="width:26px;height:26px;border-radius:7px;background:var(--jud-green-700);color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:none"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconUserStyleBold" size="14" hint-size="14px,14px"></x-import></span>{{ u.name }}</div>
+                    <div style="text-align:center;color:var(--color-text-secondary)">{{ u.email }}</div>
+                    <div style="text-align:center">{{ u.phone }}</div>
+                    <div style="text-align:center">{{ u.type }}</div>
+                    <div style="text-align:center;color:var(--color-text-secondary)">{{ u.created }}</div>
+                    <div style="text-align:center"><span style="display:inline-block;padding:5px 12px;border-radius:7px;background:#FDE9E9;color:#E03131;font-size:11px;font-weight:700;letter-spacing:0.03em">ACTIVE</span></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 0 4px">
+            <span style="font-size:12.5px;color:var(--color-text-secondary);margin-right:14px">{{ pageLabel }}</span>
+            <sc-for list="{{ pages }}" as="p" hint-placeholder-count="2">
+              <span onClick="{{ p.go }}" style="min-width:34px;height:34px;padding:0 10px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ p.st }}">{{ p.n }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isBilling }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="pa2-tiles">
+            <sc-for list="{{ billTiles }}" as="t" hint-placeholder-count="5">
+              <div style="position:relative;overflow:hidden;background:var(--jud-green-700);border-radius:13px;padding:18px 20px 20px;color:#fff">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,0.16);margin-bottom:16px">
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="{{ t.icon }}" size="18" hint-size="18px,18px"></x-import></span>
+                <div style="font-size:13px;font-weight:500;opacity:.94">{{ t.label }}</div>
+                <div style="font-family:var(--font-display);font-weight:700;font-size:28px;letter-spacing:-0.02em;margin-top:6px">{{ t.value }}</div>
+                <div style="font-size:11px;opacity:.8;margin-top:5px">{{ t.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="background:#fff;border-radius:16px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <div onClick="{{ tabSubs }}" style="height:38px;padding:0 15px;border-radius:10px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ tSubs }}">Subscriptions</div>
+              <div onClick="{{ tabInv }}" style="height:38px;padding:0 15px;border-radius:10px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ tInv }}">Invoices</div>
+              <div onClick="{{ tabPlans }}" style="height:38px;padding:0 15px;border-radius:10px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ tPlans }}">Plans</div>
+              <div onClick="{{ tabDun }}" style="height:38px;padding:0 15px;border-radius:10px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ tDun }}">Dunning</div>
+              <div onClick="{{ tabHist }}" style="height:38px;padding:0 15px;border-radius:10px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ tHist }}">History</div>
+              <div onClick="{{ tabSet }}" style="height:38px;padding:0 15px;border-radius:10px;display:inline-flex;align-items:center;font-size:12.5px;font-weight:600;cursor:pointer;{{ tSet }}">Settings</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;background:#F4F6F8;border-radius:10px;min-width:180px;color:var(--color-text-muted)">
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconSearchStyleLinear" size="15" hint-size="15px,15px"></x-import>
+                <input value="{{ billQ }}" onChange="{{ onBillQ }}" placeholder="Search billing" style="border:none;background:transparent;font-family:inherit;font-size:12.5px;width:100%;min-width:0;color:var(--color-text)" /></div>
+              <div onClick="{{ openAdd }}" style="width:40px;height:40px;border-radius:var(--radius-pill);background:var(--color-primary);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconPlusStyleBold" size="17" hint-size="17px,17px"></x-import></div>
+            </div>
+          </div>
+
+          <sc-if value="{{ bSubs }}" hint-placeholder-val="{{ true }}">
+            <div style="background:#fff;border-radius:16px;padding:16px">
+              <div class="pa2-x">
+                <div class="pa2-wide">
+                  <div style="display:grid;grid-template-columns:1.7fr 1.2fr 0.9fr 0.9fr 1fr 0.9fr 0.5fr;gap:6px;padding:14px 14px;background:var(--jud-green-700);color:#fff;border-radius:10px;font-size:12px;font-weight:600">
+                    <div>Court Name</div><div>Plan</div><div>Monthly Fee</div><div style="text-align:center">Status</div><div style="text-align:center">Next Billing</div><div style="text-align:center">Renewal</div><div></div>
+                  </div>
+                  <sc-for list="{{ subRows }}" as="s" hint-placeholder-count="6">
+                    <div onClick="{{ s.open }}" style="display:grid;grid-template-columns:1.7fr 1.2fr 0.9fr 0.9fr 1fr 0.9fr 0.5fr;gap:6px;align-items:center;padding:14px;border-bottom:1px solid #F0F2F5;font-size:12.5px;cursor:pointer">
+                      <div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="color:var(--jud-navy-900);flex:none;display:inline-flex"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconBankStyleBold" size="16" hint-size="16px,16px"></x-import></span>{{ s.court }}</div>
+                      <div style="color:var(--color-text-secondary)">{{ s.plan }}</div>
+                      <div style="font-weight:600">{{ s.fee }}</div>
+                      <div style="text-align:center"><span style="display:inline-block;padding:5px 12px;border-radius:7px;font-size:11px;font-weight:700;letter-spacing:0.03em;{{ s.pill }}">{{ s.statusUp }}</span></div>
+                      <div style="text-align:center;color:var(--color-text-secondary)">{{ s.next }}</div>
+                      <div style="text-align:center;color:var(--color-text-secondary)">{{ s.renew }}</div>
+                      <div style="text-align:right;color:var(--color-text-muted);font-weight:700;letter-spacing:1px">···</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ bInv }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff;border-radius:16px;padding:16px">
+              <div class="pa2-x">
+                <div class="pa2-wide">
+                  <div style="display:grid;grid-template-columns:1fr 1.7fr 0.8fr 0.9fr 1fr 0.9fr 1fr;gap:6px;padding:14px;background:var(--jud-green-700);color:#fff;border-radius:10px;font-size:12px;font-weight:600">
+                    <div>Invoice</div><div>Court</div><div>Period</div><div>Amount</div><div style="text-align:center">Due</div><div style="text-align:center">Status</div><div style="text-align:center">Action</div>
+                  </div>
+                  <sc-for list="{{ invRows }}" as="i" hint-placeholder-count="7">
+                    <div style="display:grid;grid-template-columns:1fr 1.7fr 0.8fr 0.9fr 1fr 0.9fr 1fr;gap:6px;align-items:center;padding:13px 14px;border-bottom:1px solid #F0F2F5;font-size:12.5px">
+                      <div style="font-family:var(--font-mono);font-size:11px;color:var(--color-text-secondary)">{{ i.ref }}</div>
+                      <div>{{ i.court }}</div>
+                      <div style="color:var(--color-text-secondary)">{{ i.period }}</div>
+                      <div style="font-weight:600">{{ i.amt }}</div>
+                      <div style="text-align:center;color:var(--color-text-secondary)">{{ i.due }}</div>
+                      <div style="text-align:center"><span style="display:inline-block;padding:5px 12px;border-radius:7px;font-size:11px;font-weight:700;letter-spacing:0.03em;{{ i.pill }}">{{ i.statusUp }}</span></div>
+                      <div style="text-align:center"><span onClick="{{ i.act }}" style="display:inline-flex;align-items:center;height:32px;padding:0 13px;border:1px solid var(--color-border);border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer">{{ i.action }}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ bPlans }}" hint-placeholder-val="{{ false }}">
+            <div class="pa2-plans">
+              <sc-for list="{{ planCards }}" as="p" hint-placeholder-count="3">
+                <div style="background:#fff;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+                    <div>
+                      <div style="font-family:var(--font-display);font-weight:700;font-size:16px">{{ p.name }}</div>
+                      <div style="font-size:11.5px;color:var(--color-text-secondary);margin-top:4px">{{ p.courts }}</div>
+                    </div>
+                    <span style="display:inline-block;padding:5px 11px;border-radius:7px;font-size:10.5px;font-weight:700;letter-spacing:0.03em;{{ p.pill }}">{{ p.tag }}</span>
+                  </div>
+                  <div style="background:var(--jud-green-700);border-radius:12px;padding:16px 18px;color:#fff">
+                    <div style="font-size:11.5px;opacity:.9">Monthly fee</div>
+                    <div style="font-family:var(--font-display);font-weight:700;font-size:26px;letter-spacing:-0.02em;margin-top:4px">{{ p.fee }}</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:9px">
+                    <div style="display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--color-text-secondary)"><span style="color:var(--color-primary);flex:none;display:inline-flex"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconCheckCircleStyleLinear" size="15" hint-size="15px,15px"></x-import></span>{{ p.f1 }}</div>
+                    <div style="display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--color-text-secondary)"><span style="color:var(--color-primary);flex:none;display:inline-flex"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconCheckCircleStyleLinear" size="15" hint-size="15px,15px"></x-import></span>{{ p.f2 }}</div>
+                    <div style="display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--color-text-secondary)"><span style="color:var(--color-primary);flex:none;display:inline-flex"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconCheckCircleStyleLinear" size="15" hint-size="15px,15px"></x-import></span>{{ p.f3 }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;margin-top:auto">
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="primary" size="sm" block="{{ true }}" onClick="{{ p.save }}" hint-size="100%,36px">Save plan</x-import>
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="outline" size="sm" onClick="{{ p.second }}" hint-size="96px,36px">{{ p.secondLabel }}</x-import>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ bDun }}" hint-placeholder-val="{{ false }}">
+            <div class="pa2-two">
+              <div style="background:#fff;border-radius:16px;padding:22px">
+                <div style="font-family:var(--font-display);font-weight:700;font-size:16px;margin-bottom:4px">Renewal &amp; retry</div>
+                <div style="font-size:11.5px;color:var(--color-text-secondary);margin-bottom:12px">Applies to every court unless a per-court override is set.</div>
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.SettingRow" title="Renewal reminder" description="Days before the due date" control="{{ ctlReminder }}" hint-size="100%,72px"></x-import>
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.SettingRow" title="Grace period" description="Days payment features stay live after a failed charge" control="{{ ctlGrace }}" hint-size="100%,72px"></x-import>
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.SettingRow" title="Retry attempts" description="Automatic charge retries during grace" control="{{ ctlRetries }}" hint-size="100%,72px"></x-import>
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.SettingRow" title="Suspend when grace expires" description="Payment features only — case access is untouched" control="{{ ctlSuspend }}" hint-size="100%,72px"></x-import>
+                <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.SettingRow" title="Auto-reactivate on payment" description="Restores features within 5 minutes of a successful charge" control="{{ ctlReactivate }}" last="{{ true }}" hint-size="100%,72px"></x-import>
+                <div style="margin-top:20px">
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="primary" size="sm" onClick="{{ actSaveRules }}" hint-size="112px,36px">Save rules</x-import>
+                </div>
+              </div>
+              <div style="background:#fff;border-radius:16px;padding:22px">
+                <div style="font-family:var(--font-display);font-weight:700;font-size:16px;margin-bottom:4px">Subscription lifecycle</div>
+                <div style="font-size:11.5px;color:var(--color-text-secondary);margin-bottom:20px">The court-side experience under the current rules.</div>
+                <sc-for list="{{ lifecycle }}" as="s" hint-placeholder-count="5">
+                  <div style="display:flex;gap:13px">
+                    <div style="display:flex;flex-direction:column;align-items:center;flex:none">
+                      <span style="width:26px;height:26px;border-radius:var(--radius-pill);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;{{ s.dotSt }}">{{ s.n }}</span>
+                      <span style="flex:1;width:2px;background:#EDEFF2;margin:4px 0"></span>
+                    </div>
+                    <div style="padding-bottom:18px;min-width:0">
+                      <div style="font-weight:600;font-size:12.5px">{{ s.title }}</div>
+                      <div style="font-size:11.5px;color:var(--color-text-secondary);margin-top:4px;line-height:1.5">{{ s.body }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ bSet }}" hint-placeholder-val="{{ false }}">
+            <div class="pa2-two">
+              <div style="background:#fff;border-radius:16px;padding:22px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px">
+                  <div>
+                    <div style="font-family:var(--font-display);font-weight:700;font-size:16px">Payment provider</div>
+                    <div style="font-size:11.5px;color:var(--color-text-secondary);margin-top:4px">Paystack merchant account with subaccount splits</div>
+                  </div>
+                  <span style="display:inline-block;padding:5px 12px;border-radius:7px;background:#E6F6ED;color:#00853F;font-size:11px;font-weight:700;letter-spacing:0.03em">CONNECTED</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:14px">
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Input" label="Merchant ID" defaultValue="ACCT_devontech_judicai_01" hint-size="100%,74px"></x-import>
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Input" label="Webhook endpoint" defaultValue="https://api.judicai.ng/hooks/paystack" hint-size="100%,74px"></x-import>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;background:#F5F7FA;border-radius:10px;padding:14px 16px">
+                    <div><div style="font-weight:600;font-size:12.5px">Default settlement split</div><div style="font-size:11px;color:var(--color-text-secondary);margin-top:3px">Court share / Devon commission</div></div>
+                    <div style="font-family:var(--font-display);font-weight:700;font-size:18px">95 / 5</div>
+                  </div>
+                  <div>
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="outline" size="sm" onClick="{{ actTestConn }}" hint-size="150px,36px">Test connection</x-import>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="background:#fff;border-radius:16px;padding:22px">
+                  <div style="font-family:var(--font-display);font-weight:700;font-size:16px;margin-bottom:4px">Invoicing</div>
+                  <div style="font-size:11.5px;color:var(--color-text-secondary);margin-bottom:16px">Numbering, terms and who receives each invoice.</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Input" label="Prefix" defaultValue="INV-2026-" hint-size="100%,74px"></x-import>
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Input" label="Next number" defaultValue="042" hint-size="100%,74px"></x-import>
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Input" label="Terms (days)" defaultValue="14" hint-size="100%,74px"></x-import>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Chip" tone="brand" selected="{{ true }}" hint-size="118px,32px">Court Admin</x-import>
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Chip" tone="brand" selected="{{ true }}" hint-size="98px,32px">Registrar</x-import>
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Chip" tone="brand" selected="{{ true }}" hint-size="124px,32px">Devon Finance</x-import>
+                  </div>
+                </div>
+
+                <div style="background:#fff;border-radius:16px;padding:22px">
+                  <div style="font-family:var(--font-display);font-weight:700;font-size:16px;margin-bottom:4px">Approvals &amp; access</div>
+                  <div style="font-size:11.5px;color:var(--color-text-secondary);margin-bottom:10px">Who can change what a court pays.</div>
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.SettingRow" title="Require a reason on every override" description="Blocks the action until a reason is written to the audit trail" control="{{ ctlStrict }}" hint-size="100%,72px"></x-import>
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.SettingRow" title="Second approver above \u20a6200,000" description="A second Platform Admin must confirm before the plan publishes" control="{{ ctlSecond }}" last="{{ true }}" hint-size="100%,72px"></x-import>
+                </div>
+
+                <div style="background:#fff;border:1px solid var(--jud-danger);border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+                  <div style="min-width:0">
+                    <div style="font-weight:700;font-size:13px;color:var(--jud-danger)">Pause all platform billing</div>
+                    <div style="font-size:11.5px;color:var(--color-text-secondary);margin-top:4px;line-height:1.5">Stops every renewal charge and reminder across all 6 courts. Payment features stay live.</div>
+                  </div>
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="danger" size="sm" onClick="{{ actPauseAll }}" hint-size="126px,36px">Pause billing</x-import>
+                </div>
+
+                <div>
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="primary" size="sm" onClick="{{ actSaveSettings }}" hint-size="130px,36px">Save settings</x-import>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ bHist }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff;border-radius:16px;padding:16px">
+              <div class="pa2-x">
+                <div class="pa2-wide">
+                  <div style="display:grid;grid-template-columns:0.9fr 1.5fr 1.2fr 1.9fr 1fr;gap:6px;padding:14px;background:var(--jud-green-700);color:#fff;border-radius:10px;font-size:12px;font-weight:600">
+                    <div>Date</div><div>Court</div><div>Event</div><div>Detail</div><div style="text-align:center">Actor</div>
+                  </div>
+                  <sc-for list="{{ histRows }}" as="h" hint-placeholder-count="7">
+                    <div style="display:grid;grid-template-columns:0.9fr 1.5fr 1.2fr 1.9fr 1fr;gap:6px;align-items:center;padding:13px 14px;border-bottom:1px solid #F0F2F5;font-size:12.5px">
+                      <div style="color:var(--color-text-secondary)">{{ h.date }}</div>
+                      <div>{{ h.court }}</div>
+                      <div style="font-weight:600">{{ h.event }}</div>
+                      <div style="color:var(--color-text-secondary)">{{ h.detail }}</div>
+                      <div style="text-align:center;color:var(--color-text-secondary)">{{ h.actor }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isStub }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border-radius:16px;padding:60px 24px;display:flex;flex-direction:column;align-items:center;gap:12px">
+          <span style="width:46px;height:46px;border-radius:var(--radius-pill);background:#F4F6F8;display:inline-flex;align-items:center;justify-content:center;color:var(--color-text-muted)">
+            <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconInfoCircleStyleLinear" size="22" hint-size="22px,22px"></x-import></span>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px">{{ stubTitle }}</div>
+          <div style="font-size:12.5px;color:var(--color-text-secondary);text-align:center;max-width:380px">This screen already exists in production and is unchanged by the billing layer.</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <sc-if value="{{ addOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeAdd }}" style="position:fixed;inset:0;background:rgba(29,39,57,.44);z-index:95;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div onClick="{{ stopProp }}" class="pa2-scroll" style="width:min(520px,96vw);max-height:90vh;overflow-y:auto;background:#fff;border-radius:18px;padding:24px 26px 26px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:20px">
+          <div style="min-width:0">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:-0.01em">{{ addTitle }}</div>
+            <div style="font-size:11.5px;color:var(--color-text-secondary);margin-top:5px">{{ addSubtitle }}</div>
+          </div>
+          <span onClick="{{ closeAdd }}" style="width:30px;height:30px;border-radius:8px;background:#F4F6F8;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;color:var(--jud-navy-900)"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconMultiplyStyleLinear" size="15" hint-size="15px,15px"></x-import></span>
+        </div>
+
+        <sc-if value="{{ addIsSub }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font-size:11.5px;font-weight:600">Court</div>
+              <div style="position:relative">
+                <div onClick="{{ togglePickCourt }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;cursor:pointer">{{ fCourtLabel }}
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronDownStyleLinear" size="14" hint-size="14px,14px"></x-import></div>
+                <sc-if value="{{ courtMenuOpen }}" hint-placeholder-val="{{ false }}">
+                  <div class="pa2-scroll" style="position:absolute;top:50px;left:0;right:0;z-index:20;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--color-border-subtle);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.14);padding:6px">
+                    <sc-for list="{{ courtOptions }}" as="c" hint-placeholder-count="5">
+                      <div onClick="{{ c.pick }}" style="padding:10px 12px;border-radius:8px;font-size:12.5px;cursor:pointer" style-hover="background:#F4F6F8">{{ c.label }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="font-size:11.5px;font-weight:600">Plan</div>
+                <div style="position:relative">
+                  <div onClick="{{ togglePickPlan }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;cursor:pointer">{{ fPlan }}
+                    <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronDownStyleLinear" size="14" hint-size="14px,14px"></x-import></div>
+                  <sc-if value="{{ planMenuOpen }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;top:50px;left:0;right:0;z-index:20;background:#fff;border:1px solid var(--color-border-subtle);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.14);padding:6px">
+                      <sc-for list="{{ planOptions }}" as="p" hint-placeholder-count="3">
+                        <div onClick="{{ p.pick }}" style="padding:10px 12px;border-radius:8px;font-size:12.5px;cursor:pointer" style-hover="background:#F4F6F8">{{ p.label }}</div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="font-size:11.5px;font-weight:600">Monthly fee (₦)</div>
+                <input value="{{ fFee }}" onChange="{{ onFFee }}" style="height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font-size:11.5px;font-weight:600">First billing date</div>
+              <input value="{{ fDate }}" onChange="{{ onFDate }}" placeholder="e.g. 01 Sep 2026" style="height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:10px;background:#F5F7FA;border-radius:10px;padding:13px 15px;font-size:11.5px;color:var(--color-text-secondary);line-height:1.55">Assigning a court starts its subscription immediately: payment features unlock, the first invoice is raised on the billing date, and reminders follow the platform dunning rules.</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ addIsInv }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font-size:11.5px;font-weight:600">Court</div>
+              <div style="position:relative">
+                <div onClick="{{ togglePickCourt }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;cursor:pointer">{{ fCourtLabel }}
+                  <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronDownStyleLinear" size="14" hint-size="14px,14px"></x-import></div>
+                <sc-if value="{{ courtMenuOpen }}" hint-placeholder-val="{{ false }}">
+                  <div class="pa2-scroll" style="position:absolute;top:50px;left:0;right:0;z-index:20;max-height:200px;overflow-y:auto;background:#fff;border:1px solid var(--color-border-subtle);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.14);padding:6px">
+                    <sc-for list="{{ courtOptions }}" as="c" hint-placeholder-count="5">
+                      <div onClick="{{ c.pick }}" style="padding:10px 12px;border-radius:8px;font-size:12.5px;cursor:pointer" style-hover="background:#F4F6F8">{{ c.label }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="font-size:11.5px;font-weight:600">Billing period</div>
+                <input value="{{ fPeriod }}" onChange="{{ onFPeriod }}" style="height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="font-size:11.5px;font-weight:600">Amount (₦)</div>
+                <input value="{{ fAmount }}" onChange="{{ onFAmount }}" style="height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="font-size:11.5px;font-weight:600">Due date</div>
+              <input value="{{ fDate }}" onChange="{{ onFDate }}" placeholder="e.g. 14 Sep 2026" style="height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ addIsPlan }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px">
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="font-size:11.5px;font-weight:600">Plan name</div>
+                <input value="{{ fName }}" onChange="{{ onFName }}" placeholder="e.g. Federal Monthly" style="height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="font-size:11.5px;font-weight:600">Monthly fee (₦)</div>
+                <input value="{{ fFee }}" onChange="{{ onFFee }}" style="height:44px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px">
+              <div style="font-size:11.5px;font-weight:600">What the plan unlocks</div>
+              <input value="{{ fF1 }}" onChange="{{ onFF1 }}" placeholder="CTC and virtual hearing payments" style="height:42px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+              <input value="{{ fF2 }}" onChange="{{ onFF2 }}" placeholder="Automatic 95 / 5 settlement split" style="height:42px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+              <input value="{{ fF3 }}" onChange="{{ onFF3 }}" placeholder="Quarterly NJC returns export" style="height:42px;border:1px solid var(--color-border);border-radius:10px;padding:0 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);width:100%" />
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasFormError }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:16px">
+            <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Alert" tone="warning" hint-size="100%,52px">{{ formError }}</x-import>
+          </div>
+        </sc-if>
+
+        <div style="display:flex;gap:10px;margin-top:22px">
+          <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="outline" size="sm" block="{{ true }}" onClick="{{ closeAdd }}" hint-size="100%,36px">Cancel</x-import>
+          <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="primary" size="sm" block="{{ true }}" onClick="{{ submitAdd }}" hint-size="100%,36px">{{ addCta }}</x-import>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;background:rgba(29,39,57,.35);z-index:90"></div>
+    <div class="pa2-scroll" style="position:fixed;top:0;right:0;bottom:0;width:min(470px,100vw);background:#fff;z-index:91;box-shadow:-10px 0 40px rgba(16,24,40,.18);overflow-y:auto;border-radius:20px 0 0 20px">
+      <div style="display:flex;align-items:center;gap:12px;padding:20px 22px 16px;border-bottom:1px solid #EDEFF2">
+        <span onClick="{{ closeDrawer }}" style="color:var(--color-text-muted);cursor:pointer;display:inline-flex;flex:none"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconArrowLeftStyleLinear" size="18" hint-size="18px,18px"></x-import></span>
+        <div style="flex:1;text-align:center;font-family:var(--font-display);font-weight:700;font-size:17px;min-width:0">{{ selCourt }}</div>
+        <span onClick="{{ closeDrawer }}" style="width:28px;height:28px;border-radius:8px;background:#F4F6F8;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:none;color:var(--jud-navy-900)"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconMultiplyStyleLinear" size="15" hint-size="15px,15px"></x-import></span>
+      </div>
+
+      <div style="padding:16px 22px 30px;display:flex;flex-direction:column;gap:18px">
+        <div style="text-align:right;font-size:12.5px;font-style:italic;color:var(--color-text-secondary)">{{ selCases }}</div>
+
+        <div style="background:#F5F7FA;border-radius:10px;padding:12px;text-align:center;font-weight:700;font-size:13px">{{ selBanner }}</div>
+
+        <div style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px;font-size:12.5px"><span style="color:var(--color-text-secondary)">Plan</span><span style="font-weight:600">{{ selPlan }}</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px;font-size:12.5px;border-top:1px solid #F0F2F5"><span style="color:var(--color-text-secondary)">Monthly fee</span><span style="font-weight:600">{{ selFee }}</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px;font-size:12.5px;border-top:1px solid #F0F2F5"><span style="color:var(--color-text-secondary)">Next billing</span><span style="font-weight:600">{{ selNext }}</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 2px;font-size:12.5px;border-top:1px solid #F0F2F5"><span style="color:var(--color-text-secondary)">Renewal</span><span style="font-weight:600">{{ selRenew }}</span></div>
+        </div>
+
+        <div>
+          <div style="display:grid;grid-template-columns:1.1fr 0.9fr 0.9fr 0.9fr;padding:11px 14px;background:var(--jud-navy-900);color:#fff;border-radius:8px;font-size:11.5px;font-weight:600">
+            <div>Invoice</div><div style="text-align:center">Period</div><div style="text-align:center">Amount</div><div style="text-align:center">Status</div>
+          </div>
+          <sc-if value="{{ selNoInvoices }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 14px;font-size:11.5px;color:var(--color-text-secondary);text-align:center">No invoices raised yet — the first one goes out on the billing date.</div>
+          </sc-if>
+          <sc-for list="{{ selInvoices }}" as="d" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:1.1fr 0.9fr 0.9fr 0.9fr;align-items:center;padding:12px 14px;border-bottom:1px solid #F0F2F5;font-size:12px">
+              <div style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-text-secondary)">{{ d.ref }}</div>
+              <div style="text-align:center;color:var(--color-text-secondary)">{{ d.period }}</div>
+              <div style="text-align:center;font-weight:600">{{ d.amt }}</div>
+              <div style="text-align:center"><span style="display:inline-block;padding:4px 10px;border-radius:6px;font-size:10.5px;font-weight:700;{{ d.pill }}">{{ d.status }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div>
+          <div style="font-weight:700;font-size:12.5px;margin-bottom:10px">Override status</div>
+          <div style="display:flex;gap:8px">
+            <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="{{ vActive }}" size="sm" block="{{ true }}" onClick="{{ setActive }}" hint-size="100%,36px">Active</x-import>
+            <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="{{ vGrace }}" size="sm" block="{{ true }}" onClick="{{ setGrace }}" hint-size="100%,36px">Grace</x-import>
+            <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Button" variant="{{ vSusp }}" size="sm" block="{{ true }}" onClick="{{ setSusp }}" hint-size="100%,36px">Suspend</x-import>
+          </div>
+          <textarea value="{{ reason }}" onChange="{{ onReason }}" placeholder="Reason for the override — recorded in the audit trail" style="margin-top:12px;width:100%;box-sizing:border-box;min-height:70px;border:1px solid var(--color-border);border-radius:10px;padding:12px 14px;font-size:12.5px;font-family:var(--font-sans);color:var(--color-text);resize:vertical"></textarea>
+          <sc-if value="{{ reasonMissing }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px">
+              <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Alert" tone="warning" hint-size="100%,56px">A reason is required before an override can be applied.</x-import>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div onClick="{{ actExtend }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;padding:0 16px;background:#F5F7FA;border-radius:10px;font-size:12.5px;font-weight:600;cursor:pointer">Extend billing date by 7 days<span style="color:var(--color-text-muted);display:inline-flex"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronRightStyleLinear" size="15" hint-size="15px,15px"></x-import></span></div>
+          <div onClick="{{ actWaiver }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;padding:0 16px;background:#F5F7FA;border-radius:10px;font-size:12.5px;font-weight:600;cursor:pointer">Apply a fee waiver<span style="color:var(--color-text-muted);display:inline-flex"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronRightStyleLinear" size="15" hint-size="15px,15px"></x-import></span></div>
+          <div onClick="{{ actRemind }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:44px;padding:0 16px;background:#F5F7FA;border-radius:10px;font-size:12.5px;font-weight:600;cursor:pointer">Send renewal reminder now<span style="color:var(--color-text-muted);display:inline-flex"><x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Icon" name="IconChevronRightStyleLinear" size="15" hint-size="15px,15px"></x-import></span></div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1100;animation:pa2Toast .2s ease-out">
+      <x-import component-from-global-scope="JudicAIDesignSystem_7f4243.Toast" tone="success" title="{{ toastTitle }}" message="{{ toastBody }}" hint-size="360px,80px"></x-import>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;billing&quot;,&quot;dashboard&quot;,&quot;courts&quot;,&quot;users&quot;],&quot;default&quot;:&quot;billing&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Portal&quot;},&quot;strictOverrides&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Policy&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: null, tab: 'subs', sel: null, reason: '', reasonMissing: false,
+    page: 1, courtsQ: '', usersQ: '', billQ: '', stateF: '', typeF: '', menu: null,
+    log: [], invPaid: [], dun: { reminder: '7', grace: '5', retries: '3' }, strictReason: true, second: true,
+    add: null, formError: '', newSubs: [], newInvoices: [], newPlans: [], extraFees: {}, pickMenu: null,
+    form: { court: '', plan: 'Standard Monthly', fee: '150,000', date: '', period: 'Sep 2026', amount: '', name: '', f1: '', f2: '', f3: '' },
+    sidebarOpen: false, toast: false, toastTitle: '', toastBody: '',
+    statusMap: { hc: 'active', nic: 'active', cca: 'active', kubwa: 'active', wuse: 'grace', fct: 'suspended' },
+    dunSuspend: true, dunReactivate: true
+  };
+
+  componentWillUnmount() { clearTimeout(this._t); }
+  ds() { return (typeof window !== 'undefined' && window.JudicAIDesignSystem_7f4243) || {}; }
+
+  toast = (title, body) => () => {
+    clearTimeout(this._t);
+    this.setState({ toast: true, toastTitle: title, toastBody: body });
+    this._t = setTimeout(() => this.setState({ toast: false }), 3200);
+  };
+  go = (s) => () => this.setState({ screen: s, sel: null, sidebarOpen: false });
+  setTab = (t) => () => this.setState({ tab: t, sel: null });
+  openCourt = (id) => this.setState({ sel: id, reason: '', reasonMissing: false });
+  closeDrawer = () => this.setState({ sel: null, reason: '', reasonMissing: false });
+  onReason = (e) => this.setState({ reason: e.target.value, reasonMissing: false });
+  flip = (k) => () => this.setState({ [k]: !this.state[k] });
+
+  setStatus(id, s) {
+    if (this.props.strictOverrides !== false && !this.state.reason.trim()) { this.setState({ reasonMissing: true }); return; }
+    const words = { active: 'reactivated', grace: 'moved to grace', suspended: 'suspended' };
+    this.setState({ statusMap: Object.assign({}, this.state.statusMap, { [id]: s }), reasonMissing: false });
+    this.logEvent(this.courtName(id), s === 'active' ? 'Reactivated' : (s === 'grace' ? 'Grace started' : 'Suspended'), (this.state.reason.trim() || 'Manual override') + ' \u00b7 admin override');
+    this.toast('Subscription ' + words[s], 'Logged against DevonTech Admin' + (this.state.reason.trim() ? ' — ' + this.state.reason.trim() : '') + '.')();
+  }
+
+  ALL_COURTS = ['State High Court 1', 'State High Court 2', 'State High Court 5', 'State High Court 7', 'Federal High Court 4 - Abuja', 'RIVERS STATE HIGH COURT 1', 'Chief Magistrate Court, Daura Rd', 'Court 7', 'Devon Test'];
+  PLAN_FEES = { 'Standard Monthly': '150,000', 'Premium Monthly': '250,000', 'Pilot (Waiver)': '0' };
+  UNASSIGNED = ['State High Court 5', 'State High Court 7', 'Devon Test', 'Chief Magistrate Court, Wuse', 'Customary Court of Appeal', 'National Industrial Court'];
+  courtName(id) {
+    if (this.COURTS[id]) return this.COURTS[id];
+    const n = (this.state.newSubs || []).filter((s) => s.id === id)[0];
+    return n ? n.court : id;
+  }
+  openAdd = () => {
+    const t = this.state.tab;
+    const kind = t === 'invoices' ? 'invoice' : (t === 'plans' ? 'plan' : 'sub');
+    this.setState({ add: kind, formError: '', form: { court: '', plan: 'Standard Monthly', fee: '150,000', date: '', period: 'Sep 2026', amount: '150,000', name: '', f1: '', f2: '', f3: '' } });
+  };
+  closeAdd = () => this.setState({ add: null, formError: '' });
+  stopProp = (e) => e.stopPropagation();
+  setF = (k) => (e) => {
+    const v = e.target.value;
+    const f = Object.assign({}, this.state.form, { [k]: v });
+    if (k === 'plan' && this.PLAN_FEES[v]) f.fee = this.PLAN_FEES[v];
+    this.setState({ form: f, formError: '' });
+  };
+  submitAdd = () => {
+    const f = this.state.form, kind = this.state.add;
+    if (kind === 'sub') {
+      if (!f.court) { this.setState({ formError: 'Choose a court to assign.' }); return; }
+      if (!f.date) { this.setState({ formError: 'Set the first billing date.' }); return; }
+      if ((this.state.newSubs || []).some((s) => s.court === f.court)) { this.setState({ formError: f.court + ' already holds a subscription.' }); return; }
+      const id = 'new' + ((this.state.newSubs || []).length + 1);
+      this.setState({
+        newSubs: (this.state.newSubs || []).concat([{ id: id, court: f.court, plan: f.plan, fee: '\u20a6' + f.fee, next: f.date, renew: 'Automatic', cases: '\u2014' }]),
+        statusMap: Object.assign({}, this.state.statusMap, { [id]: 'active' }),
+        extraFees: Object.assign({}, this.state.extraFees, { [id]: this.num(f.fee) }),
+        add: null, tab: 'subs'
+      });
+      this.logEvent(f.court, 'Subscription created', f.plan + ' \u00b7 \u20a6' + f.fee + ' \u00b7 first billing ' + f.date);
+      this.toast('Court assigned', f.court + ' is now on ' + f.plan + ' \u00b7 first charge ' + f.date + '.')();
+      return;
+    }
+    if (kind === 'invoice') {
+      if (!f.court) { this.setState({ formError: 'Choose the court to invoice.' }); return; }
+      if (!this.num(f.amount)) { this.setState({ formError: 'Enter an amount.' }); return; }
+      const ref = 'INV-2026-0' + (42 + (this.state.newInvoices || []).length);
+      this.setState({
+        newInvoices: [{ ref: ref, court: f.court, period: f.period, amt: this.money(this.num(f.amount)), due: f.date || 'On receipt', statusUp: 'PENDING', pill: 'background:#EEF0F3;color:#4A5565', action: 'Remind', act: this.toast('Reminder sent', ref + ' delivered to the court admin.') }].concat(this.state.newInvoices || []),
+        add: null, tab: 'invoices'
+      });
+      this.logEvent(f.court, 'Invoice raised', ref + ' \u00b7 ' + f.period + ' \u00b7 ' + this.money(this.num(f.amount)));
+      this.toast('Invoice raised', ref + ' sent to ' + f.court + '.')();
+      return;
+    }
+    if (!f.name) { this.setState({ formError: 'Name the plan.' }); return; }
+    this.setState({
+      newPlans: [{
+        name: f.name, courts: 'No courts assigned', fee: '\u20a6' + (f.fee || '0'), tag: 'DRAFT', pill: 'background:#EEF0F3;color:#4A5565', secondLabel: 'Discard',
+        f1: f.f1 || 'CTC and virtual hearing payments', f2: f.f2 || 'Automatic 95 / 5 settlement split', f3: f.f3 || 'Quarterly NJC returns export',
+        save: this.toast('Plan published', f.name + ' is now assignable to courts.'), second: this.toast('Draft discarded', 'The draft plan was removed.')
+      }].concat(this.state.newPlans || []),
+      add: null, tab: 'plans'
+    });
+    this.logEvent('Platform', 'Plan created', f.name + ' \u00b7 \u20a6' + (f.fee || '0') + ' monthly \u00b7 draft');
+    this.toast('Plan created', f.name + ' saved as a draft \u2014 assign courts to publish it.')();
+  };
+  withNewSubs(rows) {
+    const meta = {
+      active: { label: 'ACTIVE', pill: 'background:#E6F6ED;color:#00853F' },
+      grace: { label: 'GRACE', pill: 'background:#FDF3E3;color:#B07A18' },
+      suspended: { label: 'SUSPENDED', pill: 'background:#FDE9E9;color:#E03131' }
+    };
+    const extra = (this.state.newSubs || []).map((s) => {
+      const k = this.state.statusMap[s.id] || 'active';
+      return Object.assign({}, s, { key: k, statusUp: meta[k].label, pill: meta[k].pill, open: () => this.openCourt(s.id) });
+    });
+    return extra.concat(rows);
+  }
+  COURTS = { hc: 'State High Court 1', nic: 'Federal High Court 4 - Abuja', cca: 'RIVERS STATE HIGH COURT 1', kubwa: 'Court 7', wuse: 'Chief Magistrate Court, Daura Rd', fct: 'State High Court 2' };
+  FEES = { hc: 150000, nic: 250000, cca: 150000, kubwa: 0, wuse: 120000, fct: 150000 };
+  _counts = {};
+  money = (n) => '\u20a6' + Number(n).toLocaleString('en-US');
+  num = (s) => Number(String(s).replace(/[^0-9]/g, '')) || 0;
+  q = (s) => String(s || '').toLowerCase();
+  setQ = (k) => (e) => this.setState({ [k]: e.target.value, page: 1 });
+  setPage = (n) => () => this.setState({ page: n });
+  toggleMenu = (m) => () => this.setState({ menu: this.state.menu === m ? null : m });
+  pick = (k, v) => () => this.setState({ [k]: v, menu: null, page: 1 });
+  numCtl(k) {
+    const DS = this.ds();
+    if (!DS.Input) return null;
+    return React.createElement(DS.Input, {
+      value: this.state.dun[k],
+      onChange: (e) => this.setState({ dun: Object.assign({}, this.state.dun, { [k]: e.target.value }) }),
+      size: 'sm', containerStyle: { width: 84, flex: 'none' }, style: { textAlign: 'center', fontWeight: 600 }
+    });
+  }
+  logEvent(court, event, detail) {
+    const d = new Date(), M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const entry = { date: d.getDate() + ' ' + M[d.getMonth()] + ' ' + d.getFullYear(), court: court, event: event, detail: detail, actor: 'DevonTech Admin' };
+    this.setState({ log: [entry].concat(this.state.log || []) });
+  }
+  markPaid = (ref, court) => () => {
+    const m = this.state.statusMap;
+    const id = Object.keys(m).filter((k) => this.courtName(k) === court)[0];
+    const wasAtRisk = id && m[id] !== 'active';
+    const next = { invPaid: (this.state.invPaid || []).concat([ref]) };
+    if (wasAtRisk) next.statusMap = Object.assign({}, m, { [id]: 'active' });
+    this.setState(next);
+    this.logEvent(court, wasAtRisk ? 'Reactivated' : 'Invoice paid', ref + (wasAtRisk ? ' \u00b7 payment received, features restored' : ' \u00b7 recorded manually'));
+    this.toast('Invoice marked paid', wasAtRisk ? (court + ' reactivated \u2014 payment features are live again.') : (ref + ' settled.'))();
+  };
+  counts() {
+    const m = this.state.statusMap, F = Object.assign({}, this.FEES, this.state.extraFees || {});
+    const out = { active: 0, grace: 0, suspended: 0, mrr: 0, risk: 0, total: 0, n: Object.keys(F).length };
+    Object.keys(F).forEach((k) => {
+      const s = m[k] || 'active';
+      out[s] += 1; out.total += F[k];
+      if (s === 'active') out.mrr += F[k]; else out.risk += F[k];
+    });
+    return out;
+  }
+  baseInvoices() {
+    return [
+      { ref: 'INV-2026-041', court: 'hc', amt: 150000, open: true }, { ref: 'INV-2026-040', court: 'nic', amt: 250000, open: true },
+      { ref: 'INV-2026-039', court: 'wuse', amt: 120000, open: true }, { ref: 'INV-2026-038', court: 'fct', amt: 150000, open: true },
+      { ref: 'INV-2026-037', court: 'cca', amt: 150000, open: false }, { ref: 'INV-2026-036', court: 'hc', amt: 150000, open: false },
+      { ref: 'INV-2026-035', court: 'kubwa', amt: 0, open: false }
+    ];
+  }
+  generatedOverdue() {
+    const m = this.state.statusMap, out = [];
+    const F = Object.assign({}, this.FEES, this.state.extraFees || {});
+    Object.keys(m).forEach((k, idx) => {
+      if (m[k] !== 'suspended') return;
+      out.push({ ref: 'INV-2026-0' + (60 + idx), court: this.courtName(k), amt: F[k] || 0 });
+    });
+    return out;
+  }
+  baseInvoiceRows() {
+    const pills = {
+      paid: 'background:#E6F6ED;color:#00853F', pending: 'background:#EEF0F3;color:#4A5565',
+      overdue: 'background:#FDE9E9;color:#E03131', waived: 'background:#EEF0F3;color:#6A7282'
+    };
+    return [
+      { ref: 'INV-2026-041', court: 'State High Court 1', period: 'Aug 2026', amt: '\u20a6150,000', due: '12 Aug 2026', statusUp: 'PENDING', pill: pills.pending, action: 'Remind', act: this.toast('Reminder sent', 'INV-2026-041 delivered to the court admin and registrar.') },
+      { ref: 'INV-2026-040', court: 'Federal High Court 4 - Abuja', period: 'Aug 2026', amt: '\u20a6250,000', due: '20 Aug 2026', statusUp: 'PENDING', pill: pills.pending, action: 'Remind', act: this.toast('Reminder sent', 'INV-2026-040 delivered to the court admin and registrar.') },
+      { ref: 'INV-2026-039', court: 'Chief Magistrate Court, Daura Rd', period: 'Jul 2026', amt: '\u20a6120,000', due: '02 Jul 2026', statusUp: 'OVERDUE', pill: pills.overdue, action: 'Mark paid' },
+      { ref: 'INV-2026-038', court: 'State High Court 2', period: 'Jun 2026', amt: '\u20a6150,000', due: '01 Jun 2026', statusUp: 'OVERDUE', pill: pills.overdue, action: 'Mark paid' },
+      { ref: 'INV-2026-037', court: 'RIVERS STATE HIGH COURT 1', period: 'Jul 2026', amt: '\u20a6150,000', due: '28 Jun 2026', statusUp: 'PAID', pill: pills.paid, action: 'Receipt', act: this.toast('Receipt ready', 'INV-2026-037 receipt is available to download.') },
+      { ref: 'INV-2026-036', court: 'State High Court 1', period: 'Jul 2026', amt: '\u20a6150,000', due: '12 Jul 2026', statusUp: 'PAID', pill: pills.paid, action: 'Receipt', act: this.toast('Receipt ready', 'INV-2026-036 receipt is available to download.') },
+      { ref: 'INV-2026-035', court: 'Court 7', period: 'Jul 2026', amt: '\u20a60', due: '\u2014', statusUp: 'WAIVED', pill: pills.waived, action: 'View note', act: this.toast('Waiver note', 'NJC pilot programme \u2014 approved by DevonTech Admin, 05 Jul 2026.') }
+    ];
+  }
+  isOpenRow(r) { return r.statusUp === 'PENDING' || r.statusUp === 'OVERDUE'; }
+  invoiceSet() {
+    const paid = this.state.invPaid || [];
+    const green = 'background:#E6F6ED;color:#00853F', red = 'background:#FDE9E9;color:#E03131';
+    let rows = (this.state.newInvoices || []).concat(this.baseInvoiceRows()).map((i) => {
+      if (paid.indexOf(i.ref) > -1) return Object.assign({}, i, { statusUp: 'PAID', pill: green, action: 'Receipt', act: this.toast('Receipt ready', i.ref + ' receipt is available to download.') });
+      if (i.action === 'Mark paid') return Object.assign({}, i, { act: this.markPaid(i.ref, i.court) });
+      return i;
+    });
+    const atRisk = Object.keys(this.state.statusMap).filter((k) => this.state.statusMap[k] !== 'active').map((k) => this.courtName(k));
+    rows = rows.map((r) => (r.statusUp === 'PENDING' && atRisk.indexOf(r.court) > -1)
+      ? Object.assign({}, r, { statusUp: 'OVERDUE', pill: red, action: 'Mark paid', act: this.markPaid(r.ref, r.court) })
+      : r);
+    const openCourts = rows.filter((r) => this.isOpenRow(r)).map((r) => r.court);
+    this.generatedOverdue().forEach((g) => {
+      if (paid.indexOf(g.ref) > -1) return;
+      if (openCourts.indexOf(g.court) > -1) return;
+      rows = [{ ref: g.ref, court: g.court, period: 'Aug 2026', amt: this.money(g.amt), due: 'Immediate', statusUp: 'OVERDUE', pill: red, action: 'Mark paid', act: this.markPaid(g.ref, g.court) }].concat(rows);
+    });
+    return rows;
+  }
+  openInvoices() {
+    return this.invoiceSet().filter((r) => this.isOpenRow(r)).map((r) => ({ ref: r.ref, court: r.court, amt: this.num(r.amt) }));
+  }
+  invWithState() {
+    const rows = this.invoiceSet();
+    const q = this.q(this.state.billQ);
+    return q ? rows.filter((r) => this.q(r.court + ' ' + r.ref + ' ' + r.statusUp + ' ' + r.period).indexOf(q) > -1) : rows;
+  }
+  tiles() {
+    const c = this.counts(), open = this.openInvoices();
+    const openTotal = open.reduce((a, i) => a + i.amt, 0);
+    return [
+      { icon: 'IconBankStyleBold', label: 'Active MRR', value: this.money(c.mrr), note: c.active + ' of ' + c.n + ' courts billing' },
+      { icon: 'IconFileStyleBold', label: 'Contracted Value', value: this.money(c.total), note: 'full book' },
+      { icon: 'IconInfoTriangleStyleBold', label: 'At Risk', value: this.money(c.risk), note: c.grace + ' in grace \u00b7 ' + c.suspended + ' suspended' },
+      { icon: 'IconCheckCircleStyleBold', label: 'Courts Current', value: Math.round((c.active / c.n) * 100) + '%', note: c.active + ' of ' + c.n + ' paying on time' },
+      { icon: 'IconHistoryStyleBold', label: 'Open Invoices', value: this.money(openTotal), note: open.length + ' awaiting payment' }
+    ];
+  }
+  filterSubs(rows) {
+    const q = this.q(this.state.billQ);
+    return q ? rows.filter((r) => this.q(r.court + ' ' + r.plan + ' ' + r.statusUp).indexOf(q) > -1) : rows;
+  }
+  filterCourts(base) {
+    const q = this.q(this.state.courtsQ), s = this.state.stateF;
+    return base.filter((c) => (!q || this.q(c.name + ' ' + c.judge + ' ' + c.state + ' ' + c.type).indexOf(q) > -1) && (!s || c.state === s));
+  }
+  filterCourtFull(base) {
+    const q = this.q(this.state.courtsQ), s = this.state.stateF;
+    return base.filter((c) => (!q || this.q(c.name + ' ' + c.judge + ' ' + c.state).indexOf(q) > -1) && (!s || c.state === s));
+  }
+  filterUsers(base) {
+    const q = this.q(this.state.usersQ), t = this.state.typeF;
+    return base.filter((u) => (!q || this.q(u.name + ' ' + u.email + ' ' + u.type).indexOf(q) > -1) && (!t || u.type === t));
+  }
+  pageSlice(rows, key) {
+    this._counts[key] = rows.length;
+    const total = Math.max(1, Math.ceil(rows.length / 5));
+    const cur = Math.min(this.state.page || 1, total);
+    return rows.slice((cur - 1) * 5, cur * 5);
+  }
+  pageKey() {
+    const v = this.state.screen || this.props.startScreen || 'billing';
+    return v === 'dashboard' ? 'dash' : (v === 'courts' ? 'courts' : 'users');
+  }
+  pageBtns() {
+    const total = Math.max(1, Math.ceil((this._counts[this.pageKey()] || 0) / 5));
+    const cur = Math.min(this.state.page || 1, total);
+    const out = [];
+    for (let i = 1; i <= total; i++) out.push({ n: String(i), go: this.setPage(i), st: i === cur ? 'background:var(--jud-navy-900);color:#fff' : 'background:#fff;color:var(--jud-navy-900)' });
+    return out;
+  }
+  extraVals() {
+    const total = Math.max(1, Math.ceil((this._counts[this.pageKey()] || 0) / 5));
+    const t = this.state.tab, d = this.state.dun;
+    return {
+      pageLabel: 'Page ' + Math.min(this.state.page || 1, total) + ' of ' + total,
+      courtsQ: this.state.courtsQ, onCourtsQ: this.setQ('courtsQ'),
+      usersQ: this.state.usersQ, onUsersQ: this.setQ('usersQ'),
+      billQ: this.state.billQ, onBillQ: this.setQ('billQ'),
+      stateLabel: this.state.stateF || 'All states', typeLabel: this.state.typeF || 'All types',
+      stateMenuOpen: this.state.menu === 'state', typeMenuOpen: this.state.menu === 'type',
+      toggleStateMenu: this.toggleMenu('state'), toggleTypeMenu: this.toggleMenu('type'),
+      stateOptions: ['All states', 'FCT', 'Kano', 'Yobe', 'Kaduna', 'Rivers', 'Ebonyi', 'Oyo'].map((s) => ({ label: s, pick: this.pick('stateF', s === 'All states' ? '' : s) })),
+      typeOptions: ['All types', 'JUDGE', 'REGISTRAR', 'LEGAL AIDE'].map((s) => ({ label: s, pick: this.pick('typeF', s === 'All types' ? '' : s) })),
+      bSet: t === 'settings', tabSet: this.setTab('settings'),
+      tSet: t === 'settings' ? 'background:var(--jud-navy-900);color:#fff' : 'background:#F4F6F8;color:var(--color-text-secondary)',
+      actSaveRules: this.toast('Dunning rules saved', 'Reminder ' + d.reminder + ' days, grace ' + d.grace + ' days, ' + d.retries + ' retries \u2014 live from the next cycle.'),
+      actSaveSettings: this.toast('Billing settings saved', 'Provider, invoicing and approval changes are live.'),
+      actTestConn: this.toast('Provider reachable', 'Paystack responded in 340ms \u00b7 subaccount splits verified.'),
+      ctlStrict: this.switchCtl('strictReason'), ctlSecond: this.switchCtl('second'),
+      actPauseAll: this.toast('Billing paused', 'All renewals and reminders are on hold until you resume.')
+    };
+  }
+  switchCtl(k) {
+    const DS = this.ds();
+    return DS.Switch ? React.createElement(DS.Switch, { checked: !!this.state[k], onChange: () => this.setState({ [k]: !this.state[k] }) }) : null;
+  }
+  numberCtl(v) {
+    const DS = this.ds();
+    return DS.Input ? React.createElement(DS.Input, { defaultValue: v, size: 'sm', containerStyle: { width: 84, flex: 'none' }, style: { textAlign: 'center', fontWeight: 600 } }) : null;
+  }
+
+  renderVals() {
+    const v = this.state.screen || this.props.startScreen || 'billing';
+    const t = this.state.tab;
+    const navOn = 'background:#2B2B2B;color:#fff';
+    const navOff = 'background:#F6F7F8;color:var(--jud-navy-900)';
+    const icoOn = 'display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,0.14);color:#fff;flex:none';
+    const icoOff = 'display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;color:var(--jud-navy-900);flex:none';
+    const tabOn = 'background:var(--jud-navy-900);color:#fff';
+    const tabOff = 'background:#F4F6F8;color:var(--color-text-secondary)';
+    const pills = {
+      active: 'background:#E6F6ED;color:#00853F', grace: 'background:#FDF3E3;color:#B07A18',
+      suspended: 'background:#FDE9E9;color:#E03131', paid: 'background:#E6F6ED;color:#00853F',
+      pending: 'background:#EEF0F3;color:#4A5565', overdue: 'background:#FDE9E9;color:#E03131',
+      waived: 'background:#EEF0F3;color:#6A7282'
+    };
+    const labels = { active: 'ACTIVE', grace: 'GRACE', suspended: 'SUSPENDED' };
+    const base = [
+      { id: 'hc', court: 'State High Court 1', plan: 'Standard Monthly', fee: '₦150,000', next: '12 Aug 2026', renew: 'Automatic', cases: '30 Cases' },
+      { id: 'nic', court: 'Federal High Court 4 - Abuja', plan: 'Premium Monthly', fee: '₦250,000', next: '20 Aug 2026', renew: 'Automatic', cases: '52 Cases' },
+      { id: 'cca', court: 'RIVERS STATE HIGH COURT 1', plan: 'Standard Monthly', fee: '₦150,000', next: '28 Aug 2026', renew: 'Automatic', cases: '91 Cases' },
+      { id: 'kubwa', court: 'Court 7', plan: 'Pilot (Waiver)', fee: '₦0', next: '01 Sep 2026', renew: 'Manual', cases: '18 Cases' },
+      { id: 'wuse', court: 'Chief Magistrate Court, Daura Rd', plan: 'Standard Monthly', fee: '₦120,000', next: '02 Aug 2026', renew: 'Retry 2 of 3', cases: '66 Cases' },
+      { id: 'fct', court: 'State High Court 2', plan: 'Standard Monthly', fee: '₦150,000', next: '—', renew: 'Paused', cases: '87 Cases' }
+    ];
+    const map = this.state.statusMap;
+    const subRows = base.map((c) => {
+      const k = map[c.id] || 'active';
+      return Object.assign({}, c, { key: k, statusUp: labels[k], pill: pills[k], open: () => this.openCourt(c.id) });
+    });
+    const merged = this.withNewSubs(subRows);
+    const sel = merged.filter((r) => r.id === this.state.sel)[0] || null;
+    const drawerInv = {
+      hc: [{ ref: 'INV-2026-041', period: 'Aug 2026', amt: '₦150,000', status: 'PENDING', pill: pills.pending }, { ref: 'INV-2026-036', period: 'Jul 2026', amt: '₦150,000', status: 'PAID', pill: pills.paid }],
+      nic: [{ ref: 'INV-2026-040', period: 'Aug 2026', amt: '₦250,000', status: 'PENDING', pill: pills.pending }, { ref: 'INV-2026-031', period: 'Jul 2026', amt: '₦150,000', status: 'PAID', pill: pills.paid }],
+      cca: [{ ref: 'INV-2026-037', period: 'Jul 2026', amt: '₦150,000', status: 'PAID', pill: pills.paid }],
+      kubwa: [{ ref: 'INV-2026-035', period: 'Jul 2026', amt: '₦0', status: 'WAIVED', pill: pills.waived }],
+      wuse: [{ ref: 'INV-2026-039', period: 'Jul 2026', amt: '₦120,000', status: 'OVERDUE', pill: pills.overdue }, { ref: 'INV-2026-028', period: 'Jun 2026', amt: '₦120,000', status: 'PAID', pill: pills.paid }],
+      fct: [{ ref: 'INV-2026-038', period: 'Jun 2026', amt: '₦150,000', status: 'OVERDUE', pill: pills.overdue }]
+    };
+    const banner = { active: 'Active subscription', grace: 'In grace — 5 days remaining', suspended: 'Payment features suspended' };
+    const stubTitles = { broadcasts: 'Broadcasts', settings: 'Settings' };
+    return {
+      crumb: v === 'billing' ? 'Billing' : (v === 'dashboard' ? 'Dashboard' : (v === 'courts' ? 'Courts' : (v === 'users' ? 'Users' : stubTitles[v] || 'Dashboard'))),
+      isDash: v === 'dashboard', isCourts: v === 'courts', isUsers: v === 'users', isBilling: v === 'billing',
+      isStub: v === 'broadcasts' || v === 'settings', stubTitle: stubTitles[v] || '',
+      navDash: v === 'dashboard' ? navOn : navOff, navCourts: v === 'courts' ? navOn : navOff,
+      navUsers: v === 'users' ? navOn : navOff, navBilling: v === 'billing' ? navOn : navOff,
+      navBroadcasts: v === 'broadcasts' ? navOn : navOff, navSettings: v === 'settings' ? navOn : navOff,
+      icoDash: v === 'dashboard' ? icoOn : icoOff, icoCourts: v === 'courts' ? icoOn : icoOff,
+      icoUsers: v === 'users' ? icoOn : icoOff, icoBilling: v === 'billing' ? icoOn : icoOff,
+      icoBroadcasts: v === 'broadcasts' ? icoOn : icoOff, icoSettings: v === 'settings' ? icoOn : icoOff,
+      goDash: this.go('dashboard'), goCourts: this.go('courts'), goUsers: this.go('users'),
+      goBilling: this.go('billing'), goBroadcasts: this.go('broadcasts'), goSettings: this.go('settings'),
+      asideOpenClass: this.state.sidebarOpen ? 'pa2-aside-open' : '',
+      backdropStyle: this.state.sidebarOpen ? 'position:fixed;inset:0;background:rgba(29,39,57,.4);z-index:65' : 'display:none',
+      toggleSidebar: () => this.setState({ sidebarOpen: !this.state.sidebarOpen }),
+      closeSidebar: () => this.setState({ sidebarOpen: false }),
+      dashTiles: [
+        { icon: 'IconFileStyleBold', label: 'Total Transcript', value: '11651' },
+        { icon: 'IconBankStyleBold', label: 'Total Court', value: '62' },
+        { icon: 'IconFolderShieldStyleBold', label: 'Total Cases', value: '7234' },
+        { icon: 'IconMusicAIStyleBold', label: 'Total Recordings', value: '11914' },
+        { icon: 'IconPlayStyleBold', label: 'Total Virtual', value: '159' }
+      ],
+      billTiles: this.tiles() || [
+        { icon: 'IconBankStyleBold', label: 'Active MRR', value: '₦550,000', note: '4 of 6 courts billing' },
+        { icon: 'IconFileStyleBold', label: 'Contracted Value', value: '₦820,000', note: 'full book' },
+        { icon: 'IconInfoTriangleStyleBold', label: 'At Risk', value: '₦270,000', note: '1 in grace · 1 suspended' },
+        { icon: 'IconCheckCircleStyleBold', label: 'Renewal Rate', value: '88%', note: 'target 85%' },
+        { icon: 'IconHistoryStyleBold', label: 'Open Invoices', value: '₦670,000', note: '4 awaiting payment' }
+      ],
+      courtRows: this.pageSlice(this.filterCourts([
+        { name: 'State High Court 1', type: 'HIGH COURT', judge: 'Gomna Kaigama', state: 'Yobe', open: () => this.openCourt('hc') },
+        { name: 'Chief Magistrate Court, Daura Rd', type: 'MAGISTRATE', judge: 'Ali Yaroson', state: 'Kaduna', open: () => this.openCourt('wuse') },
+        { name: 'Federal High Court 4 - Abuja', type: 'FEDERAL HIGH COURT', judge: 'Rita Ajumogobia', state: 'FCT', open: () => this.openCourt('nic') },
+        { name: 'Devon Test', type: 'FEDERAL HIGH COURT', judge: 'Rhukiy Karmo', state: 'FCT', open: () => this.openCourt('kubwa') },
+        { name: 'RIVERS STATE HIGH COURT 1', type: 'HIGH COURT', judge: 'HIS LORDSHIP HON. SIMEON AMADI', state: 'Rivers', open: () => this.openCourt('cca') },
+        { name: 'State High Court 1', type: 'HIGH COURT', judge: 'DIJE ABOKI', state: 'Kano', open: () => this.openCourt('hc') },
+        { name: 'Court 7', type: 'HIGH COURT', judge: 'Bayo Taiwo', state: 'Oyo', open: () => this.openCourt('kubwa') },
+        { name: 'State High Court 5', type: 'HIGH COURT', judge: 'Christopher Eze', state: 'Ebonyi', open: () => this.openCourt('cca') },
+        { name: 'State High Court 2', type: 'HIGH COURT', judge: 'Usuf Muhammad', state: 'Kano', open: () => this.openCourt('fct') }
+      ]), 'dash'),
+      courtFull: this.pageSlice(this.filterCourtFull([
+        { name: 'State High Court 1', judge: 'Gomna Kaigama', state: 'Yobe', cases: '6 Cases', files: '2 Files', users: '2', last: '2026-05-23' },
+        { name: 'Chief Magistrate Court, Daura Rd', judge: 'Ali Yaroson', state: 'Kaduna', cases: '66 Cases', files: '27 Files', users: '4', last: '2026-05-16' },
+        { name: 'Federal High Court 4 - Abuja', judge: 'Rita Ajumogobia', state: 'FCT', cases: '52 Cases', files: '58 Files', users: '3', last: '2026-08-21' },
+        { name: 'Devon Test', judge: 'Rhukiy Karmo', state: 'FCT', cases: '1 Cases', files: '1 Files', users: '1', last: '2026-04-07' },
+        { name: 'RIVERS STATE HIGH COURT 1', judge: 'HIS LORDSHIP HON. SIMEON AMADI', state: 'Rivers', cases: '91 Cases', files: '100 Files', users: '3', last: '2026-07-01' },
+        { name: 'State High Court 1', judge: 'DIJE ABOKI', state: 'Kano', cases: '30 Cases', files: '81 Files', users: '3', last: '2026-07-29' },
+        { name: 'Court 7', judge: 'Bayo Taiwo', state: 'Oyo', cases: '18 Cases', files: '0 Files', users: '2', last: '1970-01-01' },
+        { name: 'State High Court 5', judge: 'Christopher Eze', state: 'Ebonyi', cases: '0 Cases', files: '0 Files', users: '2', last: '1970-01-01' },
+        { name: 'State High Court 2', judge: 'Usuf Muhammad', state: 'Kano', cases: '87 Cases', files: '42 Files', users: '4', last: '2026-07-23' },
+        { name: 'State High Court 7', judge: 'Iheanachor Chima', state: 'Ebonyi', cases: '2 Cases', files: '1 Files', users: '4', last: '2026-02-18' }
+      ]), 'courts'),
+      userRows: this.pageSlice(this.filterUsers([
+        { name: 'JOB WILSON', email: 'auroranotes9@gmail.com', phone: '09113665322', type: 'LEGAL AIDE', created: '2026-07-17' },
+        { name: 'AJIBOYE TEMITAYO', email: 'abiodunomotayo@gmail.com', phone: '08137581818', type: 'REGISTRAR', created: '2026-05-22' },
+        { name: 'Abubakar Geidam', email: 'geidam330+staff@gmail.com', phone: '08169462637', type: 'LEGAL AIDE', created: '2026-05-19' },
+        { name: 'Gomna Kaigama', email: 'geidam330@gmail.com', phone: '08035949114', type: 'JUDGE', created: '2026-05-19' },
+        { name: 'Samirah Umar', email: 'ummuayman09@gmail.com', phone: '08069833664', type: 'REGISTRAR', created: '2026-04-30' },
+        { name: 'Hadiza Musa', email: 'angalamah1@gmail.com', phone: '08066602792', type: 'REGISTRAR', created: '2026-04-27' },
+        { name: 'Precious Victor', email: 'victorprecious803@gmail.com', phone: '08120641204', type: 'REGISTRAR', created: '2026-04-23' },
+        { name: 'Ladi Danlami', email: 'ladidanlami16@gmail.com', phone: '08022186007', type: 'REGISTRAR', created: '2026-04-23' }
+      ]), 'users'),
+      pages: this.pageBtns(),
+      bSubs: t === 'subs', bInv: t === 'invoices', bPlans: t === 'plans', bDun: t === 'dunning', bHist: t === 'history',
+      tSubs: t === 'subs' ? tabOn : tabOff, tInv: t === 'invoices' ? tabOn : tabOff, tPlans: t === 'plans' ? tabOn : tabOff,
+      tDun: t === 'dunning' ? tabOn : tabOff, tHist: t === 'history' ? tabOn : tabOff,
+      tabSubs: this.setTab('subs'), tabInv: this.setTab('invoices'), tabPlans: this.setTab('plans'),
+      tabDun: this.setTab('dunning'), tabHist: this.setTab('history'),
+      subRows: this.filterSubs(merged),
+      invRows: this.invWithState(),
+      unusedInvRows: ([
+        { ref: 'INV-2026-041', court: 'State High Court 1', period: 'Aug 2026', amt: '₦150,000', due: '12 Aug 2026', statusUp: 'PENDING', pill: pills.pending, action: 'Remind', act: this.toast('Reminder sent', 'INV-2026-041 delivered to the court admin and registrar.') },
+        { ref: 'INV-2026-040', court: 'Federal High Court 4 - Abuja', period: 'Aug 2026', amt: '₦250,000', due: '20 Aug 2026', statusUp: 'PENDING', pill: pills.pending, action: 'Remind', act: this.toast('Reminder sent', 'INV-2026-040 delivered to the court admin and registrar.') },
+        { ref: 'INV-2026-039', court: 'Chief Magistrate Court, Daura Rd', period: 'Jul 2026', amt: '₦120,000', due: '02 Jul 2026', statusUp: 'OVERDUE', pill: pills.overdue, action: 'Mark paid', act: this.toast('Invoice marked paid', 'Payment features reactivate within 5 minutes.') },
+        { ref: 'INV-2026-038', court: 'State High Court 2', period: 'Jun 2026', amt: '₦150,000', due: '01 Jun 2026', statusUp: 'OVERDUE', pill: pills.overdue, action: 'Mark paid', act: this.toast('Invoice marked paid', 'Payment features reactivate within 5 minutes.') },
+        { ref: 'INV-2026-037', court: 'RIVERS STATE HIGH COURT 1', period: 'Jul 2026', amt: '₦150,000', due: '28 Jun 2026', statusUp: 'PAID', pill: pills.paid, action: 'Receipt', act: this.toast('Receipt ready', 'INV-2026-037 receipt is available to download.') },
+        { ref: 'INV-2026-036', court: 'State High Court 1', period: 'Jul 2026', amt: '₦150,000', due: '12 Jul 2026', statusUp: 'PAID', pill: pills.paid, action: 'Receipt', act: this.toast('Receipt ready', 'INV-2026-036 receipt is available to download.') },
+        { ref: 'INV-2026-035', court: 'Court 7', period: 'Jul 2026', amt: '₦0', due: '—', statusUp: 'WAIVED', pill: pills.waived, action: 'View note', act: this.toast('Waiver note', 'NJC pilot programme — approved by DevonTech Admin, 05 Jul 2026.') }
+      ]),
+      planCards: (this.state.newPlans || []).concat([
+        { name: 'Standard Monthly', courts: '4 courts assigned', fee: '₦150,000', tag: 'PUBLISHED', pill: pills.active, secondLabel: 'Archive',
+          f1: 'CTC and virtual hearing payments', f2: 'Automatic 95 / 5 settlement split', f3: 'Quarterly NJC returns export',
+          save: this.toast('Standard Monthly saved', 'Fee applies from each court’s next billing date.'), second: this.toast('Plan archived', 'Existing courts keep this plan until their next renewal.') },
+        { name: 'Premium Monthly', courts: '1 court assigned', fee: '₦250,000', tag: 'PUBLISHED', pill: pills.active, secondLabel: 'Archive',
+          f1: 'Everything in Standard Monthly', f2: 'Multi-division billing and cost centres', f3: 'Dedicated reconciliation support',
+          save: this.toast('Premium Monthly saved', 'A second approver is required above ₦200,000.'), second: this.toast('Plan archived', 'Existing courts keep this plan until their next renewal.') },
+        { name: 'Pilot (Waiver)', courts: '1 court assigned', fee: '₦0', tag: 'TIME-CAPPED', pill: pills.grace, secondLabel: 'Duplicate',
+          f1: 'All payment features, no subscription fee', f2: '90-day cap, then reverts to Standard', f3: 'Requires a logged waiver reason',
+          save: this.toast('Pilot plan saved', 'Waiver length and reversion plan updated.'), second: this.toast('Plan duplicated', 'A copy is ready to edit as a new draft.') }
+      ]),
+      lifecycle: [
+        { n: '1', title: 'Reminder — 7 days before due', body: 'Court admin and registrar are emailed the amount and due date.', dotSt: 'background:#E6F6ED;color:#00853F' },
+        { n: '2', title: 'Charge attempted on the due date', body: 'Automatic for courts on auto-renewal, manual for pilot and waiver courts.', dotSt: 'background:#E6F6ED;color:#00853F' },
+        { n: '3', title: 'Grace — 5 days', body: 'Payment features stay live. Up to 3 retries run and court staff are notified each time.', dotSt: 'background:#FDF3E3;color:#B07A18' },
+        { n: '4', title: 'Suspension', body: 'Payment features are disabled for that court alone. Cases, recordings and cause list are unaffected.', dotSt: 'background:#FDE9E9;color:#E03131' },
+        { n: '5', title: 'Reactivation', body: 'A successful charge restores features within 5 minutes with no admin action.', dotSt: 'background:#E6F6ED;color:#00853F' }
+      ],
+      histRows: (this.state.log || []).concat([
+        { date: '24 Jul 2026', court: 'State High Court 2', event: 'Suspended', detail: 'Grace expired · ₦150,000 unpaid', actor: 'System' },
+        { date: '19 Jul 2026', court: 'Chief Magistrate Court, Daura Rd', event: 'Grace started', detail: 'Renewal charge failed · retry 2 of 3', actor: 'System' },
+        { date: '12 Jul 2026', court: 'State High Court 1', event: 'Renewed', detail: '₦150,000 · Standard Monthly v2', actor: 'Paystack' },
+        { date: '05 Jul 2026', court: 'Court 7', event: 'Waiver applied', detail: '90 days · NJC pilot programme', actor: 'DevonTech Admin' },
+        { date: '01 Jul 2026', court: 'Federal High Court 4 - Abuja', event: 'Plan changed', detail: 'Standard → Premium · ₦150,000 → ₦250,000', actor: 'DevonTech Admin' },
+        { date: '28 Jun 2026', court: 'RIVERS STATE HIGH COURT 1', event: 'Renewed', detail: '₦150,000 · Standard Monthly v2', actor: 'Paystack' },
+        { date: '14 Jun 2026', court: 'State High Court 1', event: 'Fee changed', detail: '₦120,000 → ₦150,000 · effective next cycle', actor: 'DevonTech Admin' }
+      ]),
+      ctlReminder: this.numCtl('reminder'), ctlGrace: this.numCtl('grace'), ctlRetries: this.numCtl('retries'),
+      ctlSuspend: this.switchCtl('dunSuspend'), ctlReactivate: this.switchCtl('dunReactivate'),
+      drawerOpen: !!sel,
+      closeDrawer: this.closeDrawer,
+      selCourt: sel ? sel.court : '', selCases: sel ? sel.cases : '', selPlan: sel ? sel.plan : '',
+      selFee: sel ? sel.fee : '', selNext: sel ? sel.next : '', selRenew: sel ? sel.renew : '',
+      selBanner: sel ? banner[sel.key] : '', selInvoices: sel ? (drawerInv[sel.id] || []) : [], selNoInvoices: !!sel && !(drawerInv[sel.id] || []).length,
+      reason: this.state.reason, onReason: this.onReason, reasonMissing: this.state.reasonMissing,
+      vActive: sel && sel.key === 'active' ? 'primary' : 'outline',
+      vGrace: sel && sel.key === 'grace' ? 'primary' : 'outline',
+      vSusp: sel && sel.key === 'suspended' ? 'danger' : 'outline',
+      setActive: () => sel && this.setStatus(sel.id, 'active'),
+      setGrace: () => sel && this.setStatus(sel.id, 'grace'),
+      setSusp: () => sel && this.setStatus(sel.id, 'suspended'),
+      actExtend: this.toast('Billing date extended', 'The next charge moves 7 days later and court staff have been notified.'),
+      actWaiver: this.toast('Waiver applied', 'Fee set to ₦0 for this period with the reason recorded in the audit trail.'),
+      actRemind: this.toast('Reminder sent', 'Renewal notice delivered to the court admin and registrar.'),
+      actSaveRules: this.toast('Dunning rules saved', 'New reminder and grace settings apply from the next cycle.'),
+      actPrimary: this.toast('New billing record', 'Assign a court to a plan, or raise an invoice for the next period.'),
+      actAddCourt: this.toast('Add a court', 'Create the court record, then assign it a subscription plan.'),
+      actAddUser: this.toast('Add a user', 'Invite a registrar, judge or legal aide to a court.'),
+      openAdd: this.openAdd, closeAdd: this.closeAdd, submitAdd: this.submitAdd, stopProp: this.stopProp,
+      addOpen: !!this.state.add, addIsSub: this.state.add === 'sub', addIsInv: this.state.add === 'invoice', addIsPlan: this.state.add === 'plan',
+      addTitle: this.state.add === 'invoice' ? 'Raise an invoice' : (this.state.add === 'plan' ? 'Create a plan' : 'Assign a court to a plan'),
+      addSubtitle: this.state.add === 'invoice' ? 'Bills a court outside the normal renewal cycle.' : (this.state.add === 'plan' ? 'Saved as a draft until you assign courts to it.' : 'Starts the subscription that unlocks payment features for that court.'),
+      addCta: this.state.add === 'invoice' ? 'Raise invoice' : (this.state.add === 'plan' ? 'Create plan' : 'Assign court'),
+      formError: this.state.formError, hasFormError: !!this.state.formError,
+      fCourt: this.state.form.court, fPlan: this.state.form.plan, fFee: this.state.form.fee,
+      fDate: this.state.form.date, fPeriod: this.state.form.period, fAmount: this.state.form.amount,
+      fName: this.state.form.name, fF1: this.state.form.f1, fF2: this.state.form.f2, fF3: this.state.form.f3,
+      onFCourt: this.setF('court'), onFPlan: this.setF('plan'), onFFee: this.setF('fee'), onFDate: this.setF('date'),
+      onFPeriod: this.setF('period'), onFAmount: this.setF('amount'), onFName: this.setF('name'),
+      onFF1: this.setF('f1'), onFF2: this.setF('f2'), onFF3: this.setF('f3'),
+      courtOptions: this.ALL_COURTS.filter((c) => Object.keys(this.state.statusMap).every((k) => this.courtName(k) !== c)).map((c) => ({ label: c, pick: () => this.setState({ form: Object.assign({}, this.state.form, { court: c }), pickMenu: null, formError: '' }) })),
+      planOptions: ['Standard Monthly', 'Premium Monthly', 'Pilot (Waiver)'].concat((this.state.newPlans || []).map((p) => p.name)).map((p) => ({ label: p, pick: () => this.setState({ form: Object.assign({}, this.state.form, { plan: p, fee: this.PLAN_FEES[p] || this.state.form.fee }), pickMenu: null }) })),
+      fCourtLabel: this.state.form.court || 'Select a court\u2026',
+      courtMenuOpen: this.state.pickMenu === 'court', planMenuOpen: this.state.pickMenu === 'plan',
+      togglePickCourt: () => this.setState({ pickMenu: this.state.pickMenu === 'court' ? null : 'court' }),
+      togglePickPlan: () => this.setState({ pickMenu: this.state.pickMenu === 'plan' ? null : 'plan' }),
+      atRiskCount: String(this.counts().grace + this.counts().suspended),
+      logoWide: { style: { transform: 'scale(0.78)', transformOrigin: 'left center', flex: 'none', marginLeft: -8 } },
+      ...this.extraVals(),
+      toastOn: this.state.toast, toastTitle: this.state.toastTitle, toastBody: this.state.toastBody
+    };
+  }
+}
+</script>
+</body>
+</html>
